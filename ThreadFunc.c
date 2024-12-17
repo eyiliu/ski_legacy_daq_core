@@ -18,327 +18,327 @@ unsigned char High_Cmd[5] = {0x51,0x52,0x52,0x53,0x53,0x54};
 unsigned char Low_Cmd[5]  = {0x98,0x21,0xa9,0x31,0xb7,0x40};	
 int CVICALLBACK DataAcq(void *functionData)
 {
-//	unsigned char dat[512], TempMessage[100];
-	unsigned char dat[2048], TempMessage[100];  
-	int i, j, n;
-	int WaitCnt=0;
-	AcqPackCnt=0;
-	int Cnt_AcqPackage = 0;
-	while(GetData_Status==1)
+  //	unsigned char dat[512], TempMessage[100];
+  unsigned char dat[2048], TempMessage[100];  
+  int i, j, n;
+  int WaitCnt=0;
+  AcqPackCnt=0;
+  int Cnt_AcqPackage = 0;
+  while(GetData_Status==1)
+    {
+      status=viRead(instr,dat,2048,&n);
+      if (n!=0)
 	{
-		status=viRead(instr,dat,2048,&n);
-		if (n!=0)
-		{
-			WaitCnt=0;
-			AcqPackCnt++;
-			WriteFile (fp_write, dat,n);
-			if(AcqPackCnt%1000==0)
-			{
-			    sprintf(TempMessage,"²É¼¯µ½ %d ¸öÊı¾İ°ü(Ã¿¸öÊı¾İ°ü512Byte)...\n",AcqPackCnt);        
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-			}
-		}
-		else
-		{   
-			/*if(USB_Status==0)
-			{
-				SetCtrlVal(mainHandle,Main_TEXTBOX,"USBÉè±¸¶Ï¿ª£¬²É¼¯ÖĞ¶Ï£¡\n");
-				break;
-			}
-			else
-			{		  */
-				if(GetData_Status==1)
-				{
-					SetCtrlVal(mainHandle,Main_TEXTBOX,"µÈ´ıÊı¾İ¡­¡­\n");
-					Beep();
-				//	Sleep(100);
-					WaitCnt++;
-				}
-			
-		}
-		//ÕâÀï¿ÉÒÔÌí¼Óº¯Êı½øĞĞ²É¼¯²»µ½Êı¾İµÄ²Ù×÷
+	  WaitCnt=0;
+	  AcqPackCnt++;
+	  WriteFile (fp_write, dat,n);
+	  if(AcqPackCnt%1000==0)
+	    {
+	      sprintf(TempMessage,"é‡‡é›†åˆ° %d ä¸ªæ•°æ®åŒ…(æ¯ä¸ªæ•°æ®åŒ…512Byte)...\n",AcqPackCnt);        
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	    }
 	}
-	sprintf(TempMessage,"²É¼¯Í£Ö¹£¬¹²²É¼¯µ½ %d ¸öÊı¾İ°ü...\n",AcqPackCnt);
-	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	Cnt_AcqPackage		=		  AcqPackCnt / 7.56;
-	sprintf(TempMessage,"¹²²É¼¯µ½ %d ¸öÍêÕûÊı¾İ...\n",Cnt_AcqPackage);
-	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	return(0);
+      else
+	{   
+	  /*if(USB_Status==0)
+	    {
+	    SetCtrlVal(mainHandle,Main_TEXTBOX,"USBè®¾å¤‡æ–­å¼€ï¼Œé‡‡é›†ä¸­æ–­ï¼\n");
+	    break;
+	    }
+	    else
+	    {		  */
+	  if(GetData_Status==1)
+	    {
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,"ç­‰å¾…æ•°æ®â€¦â€¦\n");
+	      Beep();
+	      //	Sleep(100);
+	      WaitCnt++;
+	    }
+			
+	}
+      //è¿™é‡Œå¯ä»¥æ·»åŠ å‡½æ•°è¿›è¡Œé‡‡é›†ä¸åˆ°æ•°æ®çš„æ“ä½œ
+    }
+  sprintf(TempMessage,"é‡‡é›†åœæ­¢ï¼Œå…±é‡‡é›†åˆ° %d ä¸ªæ•°æ®åŒ…...\n",AcqPackCnt);
+  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+  Cnt_AcqPackage		=		  AcqPackCnt / 7.56;
+  sprintf(TempMessage,"å…±é‡‡é›†åˆ° %d ä¸ªå®Œæ•´æ•°æ®...\n",Cnt_AcqPackage);
+  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+  return(0);
 }
 
 int CVICALLBACK Acqing(void *functionData)
 {
-	int Cnt_AcqPack = AcqPackCnt;
-	int Cnt_AcqPack_Delay = Cnt_AcqPack;
-	while(GetData_Status==1)
+  int Cnt_AcqPack = AcqPackCnt;
+  int Cnt_AcqPack_Delay = Cnt_AcqPack;
+  while(GetData_Status==1)
+    {
+      Cnt_AcqPack = AcqPackCnt;
+      if(Cnt_AcqPack_Delay == Cnt_AcqPack)
 	{
-		Cnt_AcqPack = AcqPackCnt;
-		if(Cnt_AcqPack_Delay == Cnt_AcqPack)
-		{
-			SetCtrlVal(mainHandle,Main_Acq_ing,0);
-		}
-		else
-		{
-			SetCtrlVal(mainHandle,Main_Acq_ing,1);
-		}
-		Sleep(200);
-		Cnt_AcqPack_Delay = Cnt_AcqPack;
+	  SetCtrlVal(mainHandle,Main_Acq_ing,0);
 	}
-	SetCtrlVal(mainHandle,Main_Acq_ing,0); 
-	return(0);
-}
-int CVICALLBACK USBStatus (void* functionData)						  //²éÑ¯USB¶Ë¿Ú×´Ì¬Ïß³Ì
-{
-	char desc[256];
-	int i = 0;
-	while(USB_Status==1)
+      else
 	{
-		status = viFindRsrc(defaultRM, "USB[0-9]::0x04B4::0x1004::NI-VISA-[0-9]000[0-9]::RAW", VI_NULL, VI_NULL, desc);		
-		if (status < VI_SUCCESS)
+	  SetCtrlVal(mainHandle,Main_Acq_ing,1);
+	}
+      Sleep(200);
+      Cnt_AcqPack_Delay = Cnt_AcqPack;
+    }
+  SetCtrlVal(mainHandle,Main_Acq_ing,0); 
+  return(0);
+}
+int CVICALLBACK USBStatus (void* functionData)						  //æŸ¥è¯¢USBç«¯å£çŠ¶æ€çº¿ç¨‹
+{
+  char desc[256];
+  int i = 0;
+  while(USB_Status==1)
+    {
+      status = viFindRsrc(defaultRM, "USB[0-9]::0x04B4::0x1004::NI-VISA-[0-9]000[0-9]::RAW", VI_NULL, VI_NULL, desc);		
+      if (status < VI_SUCCESS)
+	{
+	  status = viFindRsrc(defaultRM, "USB[0-9]::0x04B4::0x1004::NI-VISA-[0-9]::RAW", VI_NULL, VI_NULL, desc);
+	  if(status<VI_SUCCESS)
+	    {
+	      USB_Status=0;
+	      GetData_Status=0;
+	      AcqPackCnt=0; 
+	      SetCtrlVal(mainHandle,Main_USB_Status,0);
+	      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+	      i = 0;
+	      while(1)
 		{
-			status = viFindRsrc(defaultRM, "USB[0-9]::0x04B4::0x1004::NI-VISA-[0-9]::RAW", VI_NULL, VI_NULL, desc);
-			if(status<VI_SUCCESS)
-			{
-				USB_Status=0;
-				GetData_Status=0;
-				AcqPackCnt=0; 
-				SetCtrlVal(mainHandle,Main_USB_Status,0);
-				SetCtrlVal(mainHandle,Main_Acq_Status,0);
-				i = 0;
-				while(1)
-				{
 				
-						Beep();
-						Sleep(500);
+		  Beep();
+		  Sleep(500);
 					
-				}
+		}
 				
 			
-			}
-		}
-		Sleep(1000);
+	    }
 	}
-	return 0;
+      Sleep(1000);
+    }
+  return 0;
 }
 
 int CVICALLBACK COMStatus (void* functionData)
 {
-	while(COM_Status==1)
+  while(COM_Status==1)
+    {
+      Error=ReturnRS232Err ();
+      if (Error<0)
 	{
-		Error=ReturnRS232Err ();
-		if (Error<0)
-		{
-			COM_Status=0;
-			GetData_Status=0;
-			AcqPackCnt=0;
-			Monitor_Status=0;
-			SetCtrlVal(mainHandle,Main_COM_Status,0);
-			SetCtrlVal(mainHandle,Main_Acq_Status,0);
-			SetCtrlVal(mainHandle,Main_Monitor_Status,0);
-			MessagePopup("´íÎó","COMÉè±¸¶Ï¿ª£¡");
-			return -1;
-		}
-		Sleep(1000);
+	  COM_Status=0;
+	  GetData_Status=0;
+	  AcqPackCnt=0;
+	  Monitor_Status=0;
+	  SetCtrlVal(mainHandle,Main_COM_Status,0);
+	  SetCtrlVal(mainHandle,Main_Acq_Status,0);
+	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
+	  MessagePopup("é”™è¯¯","COMè®¾å¤‡æ–­å¼€ï¼");
+	  return -1;
 	}
-	return 0;
+      Sleep(1000);
+    }
+  return 0;
 }
 
 int CVICALLBACK MonitorFunction (void* functionData)
 {
-	int i;
-	int n=0;
-	char TemperatureFile[300];
-	char CurrentFile[300];
-	sprintf(TemperatureFile,"%s\\Temperature.csv",WrDataPath);
-	sprintf(CurrentFile,"%s\\Current.csv",WrDataPath);
-	fp_temperature=fopen(TemperatureFile,"a");
-	if(!fp_temperature)
-			MessagePopup("´íÎó","Ã»ÓĞ³É¹¦´´½¨TemperatureFile£¡");
-	fp_current=fopen(CurrentFile,"a");
-	while(Monitor_Status==1)
+  int i;
+  int n=0;
+  char TemperatureFile[300];
+  char CurrentFile[300];
+  sprintf(TemperatureFile,"%s\\Temperature.csv",WrDataPath);
+  sprintf(CurrentFile,"%s\\Current.csv",WrDataPath);
+  fp_temperature=fopen(TemperatureFile,"a");
+  if(!fp_temperature)
+    MessagePopup("é”™è¯¯","æ²¡æœ‰æˆåŠŸåˆ›å»ºTemperatureFileï¼");
+  fp_current=fopen(CurrentFile,"a");
+  while(Monitor_Status==1)
+    {
+      if(n%10==0)
 	{
-		if(n%10==0)
+	  for(i=0;i<16;i++)
+	    {
+	      if(FEE[i]==0)
+		continue;
+	      if(CheckCurrent(1,FEEID[i],i,fp_current)==-1)
 		{
-			for(i=0;i<16;i++)
-			{
-				if(FEE[i]==0)
-					continue;
-				if(CheckCurrent(1,FEEID[i],i,fp_current)==-1)
-				{
-					MessagePopup("´íÎó","µçÁ÷Ò£²â´íÎó£¡");
-					return(-1);
-				}
-			} 
-			SetCtrlVal(mainHandle,Main_TEXTBOX,"\nÍê³ÉËùÓĞFEEµÄµçÁ÷Ò£²â......\n");
+		  MessagePopup("é”™è¯¯","ç”µæµé¥æµ‹é”™è¯¯ï¼");
+		  return(-1);
 		}
-		
-		if(n%100==0)
-		{
-			for(i=0;i<16;i++)
-			{
-				if(FEE[i]==0)
-					continue;
-				if(CheckTemperature(1,FEEID[i],i,fp_temperature)==-1)
-				{
-					MessagePopup("´íÎó","ÎÂ¶ÈÒ£²â´íÎó£¡");
-					return(-1);
-				}
-			}
-			SetCtrlVal(mainHandle,Main_TEXTBOX,"Íê³ÉËùÓĞFEEµÄÎÂ¶ÈÒ£²â......\n");
-		}
-		
-		if(n%100==0)
-		{
-			for(i=0;i <16;i++)
-			{
-				if(FEE[i] == 0)
-					continue;
-				if(CheckFPGALogic(1, FEEID[i]) == -1)
-				{
-					MessagePopup("´íÎó","FPGA×´Ì¬²ÎÊıÒ£²â´íÎó£¡");
-					return(-1);
-				}
-			}
-			SetCtrlVal(mainHandle,Main_TEXTBOX,"Íê³ÉËùÓĞFEEµÄFPGA×´Ì¬²ÎÊıÒ£²â......\n");
-			
-		}
-		
-		if(n%100==0)
-		{
-			for(i=0;i<32;i++)
-			{
-				if(Hit[i]==0)
-					continue;
-				if(CheckHit( 1 , i)==-1)
-				{
-					MessagePopup("´íÎó","Sub-DAQ×´Ì¬¼Ä´æÆ÷Ò£²â´íÎó£¡");
-					return(-1);
-				}
-			}
-		 	SetCtrlVal(mainHandle,Main_TEXTBOX,"Íê³ÉSub-DAQ×´Ì¬¼Ä´æÆ÷£¨Trig¡¢Hit¼ÆÊı£©Ò£²â......\n\n");
-			n=1;
-		}
-		
-		Sleep(100);
-		n++;
+	    } 
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"\nå®Œæˆæ‰€æœ‰FEEçš„ç”µæµé¥æµ‹......\n");
 	}
-	fclose(fp_temperature);
-	fclose(fp_current);
-	return 0;
+		
+      if(n%100==0)
+	{
+	  for(i=0;i<16;i++)
+	    {
+	      if(FEE[i]==0)
+		continue;
+	      if(CheckTemperature(1,FEEID[i],i,fp_temperature)==-1)
+		{
+		  MessagePopup("é”™è¯¯","æ¸©åº¦é¥æµ‹é”™è¯¯ï¼");
+		  return(-1);
+		}
+	    }
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"å®Œæˆæ‰€æœ‰FEEçš„æ¸©åº¦é¥æµ‹......\n");
+	}
+		
+      if(n%100==0)
+	{
+	  for(i=0;i <16;i++)
+	    {
+	      if(FEE[i] == 0)
+		continue;
+	      if(CheckFPGALogic(1, FEEID[i]) == -1)
+		{
+		  MessagePopup("é”™è¯¯","FPGAçŠ¶æ€å‚æ•°é¥æµ‹é”™è¯¯ï¼");
+		  return(-1);
+		}
+	    }
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"å®Œæˆæ‰€æœ‰FEEçš„FPGAçŠ¶æ€å‚æ•°é¥æµ‹......\n");
+			
+	}
+		
+      if(n%100==0)
+	{
+	  for(i=0;i<32;i++)
+	    {
+	      if(Hit[i]==0)
+		continue;
+	      if(CheckHit( 1 , i)==-1)
+		{
+		  MessagePopup("é”™è¯¯","Sub-DAQçŠ¶æ€å¯„å­˜å™¨é¥æµ‹é”™è¯¯ï¼");
+		  return(-1);
+		}
+	    }
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"å®ŒæˆSub-DAQçŠ¶æ€å¯„å­˜å™¨ï¼ˆTrigã€Hitè®¡æ•°ï¼‰é¥æµ‹......\n\n");
+	  n=1;
+	}
+		
+      Sleep(100);
+      n++;
+    }
+  fclose(fp_temperature);
+  fclose(fp_current);
+  return 0;
 }
 
 int CVICALLBACK CaliAcq(void *functionData)
 {
-	unsigned char CommandBuffer[2];
-	unsigned char TempMessage[100];
-	int i;
- 	int Volt = 0;
-	int FileLength;
+  unsigned char CommandBuffer[2];
+  unsigned char TempMessage[100];
+  int i;
+  int Volt = 0;
+  int FileLength;
  
-	char timemsg[20];
-	double CurTime;
+  char timemsg[20];
+  double CurTime;
 
-	char WrDataFile[300];
-	char File[100];
+  char WrDataFile[300];
+  char File[100];
 
   
-	  CommandBuffer[1]  = 0x00;
-    CommandBuffer[0]  = 0x11;
-	if(SendUsbData(instr, CommandBuffer) ==-1)
-		{
-		   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-			return -1;
-		}
-			else
-			{
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"½øÈë¿Ì¶ÈÄ£Ê½\n");
-		  }
- 	GetCurrentDateTime(&CurTime);
+  CommandBuffer[1]  = 0x00;
+  CommandBuffer[0]  = 0x11;
+  if(SendUsbData(instr, CommandBuffer) ==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+      return -1;
+    }
+  else
+    {
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"è¿›å…¥åˆ»åº¦æ¨¡å¼\n");
+    }
+  GetCurrentDateTime(&CurTime);
 
-	FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
 
-	sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);		 
-	FileLength=strlen(WrDataFile);
-	WrDataFile[FileLength-4]='\0';
+  sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);		 
+  FileLength=strlen(WrDataFile);
+  WrDataFile[FileLength-4]='\0';
   
-	for( i = 0 ; i <8 ; i++)
-	{	  
-    Sleep(100);
-    /*-------Creat file------------------------------*/
+  for( i = 0 ; i <8 ; i++)
+    {	  
+      Sleep(100);
+      /*-------Creat file------------------------------*/
       Volt  =  i*100;
-			sprintf(File,"%s_%d.dat",WrDataFile,Volt);
-			fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-			if(fp_write==-1)
-			{
-				MessagePopup ("´íÎó", "ĞÂ½¨Êı¾İ±£´æÎÄ¼şÊ§°Ü£¡");
-				return -1;
-			}
+      sprintf(File,"%s_%d.dat",WrDataFile,Volt);
+      fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
+      if(fp_write==-1)
+	{
+	  MessagePopup ("é”™è¯¯", "æ–°å»ºæ•°æ®ä¿å­˜æ–‡ä»¶å¤±è´¥ï¼");
+	  return -1;
+	}
       /*--------------Set Cali Voltage-------------*/
-	    CommandBuffer[1]  = Cali_DAC_Code_High[i];
+      CommandBuffer[1]  = Cali_DAC_Code_High[i];
       CommandBuffer[0]  = Cali_DAC_Code_Low[i];
-	    if(SendUsbData(instr, CommandBuffer) ==-1)
-			  	{
-			  	   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-			  		return -1;
-			  	}
-			  	else
-          {
-		  		    SetCtrlVal(mainHandle,Main_TEXTBOX,"ÉèÖÃ¿Ì¶ÈµçÑ¹\n");
-		  	  }
-     /*------------Start Acq----------------*/
-			GetData_Status=1;
-			CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);       
-			SetCtrlVal(mainHandle,Main_Acq_Status,1);
-      SetCtrlVal(mainHandle,Main_TEXTBOX,"¿ªÊ¼²ÉÊı\n");
-	    CommandBuffer[1]  = 0x00;
+      if(SendUsbData(instr, CommandBuffer) ==-1)
+	{
+	  MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+	  return -1;
+	}
+      else
+	{
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"è®¾ç½®åˆ»åº¦ç”µå‹\n");
+	}
+      /*------------Start Acq----------------*/
+      GetData_Status=1;
+      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);       
+      SetCtrlVal(mainHandle,Main_Acq_Status,1);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"å¼€å§‹é‡‡æ•°\n");
+      CommandBuffer[1]  = 0x00;
       CommandBuffer[0]  = 0xa1;
-    	if(SendUsbData(instr, CommandBuffer) ==-1)
-	    	{
-		      	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-			    return -1;
-	    	}
-			else
-			{
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"´ò¿ª´¥·¢\n");
-		  }
+      if(SendUsbData(instr, CommandBuffer) ==-1)
+	{
+	  MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+	  return -1;
+	}
+      else
+	{
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"æ‰“å¼€è§¦å‘\n");
+	}
       
       while( AcqPackCnt  < 300)
-      {
-        Sleep(300);
-      }				
+	{
+	  Sleep(300);
+	}				
       
-        /*-----Stop Acq-----*/
-      	CommandBuffer[1]  = 0x00;
-       CommandBuffer[0]  = 0xa0;
-    	if(SendUsbData(instr, CommandBuffer) ==-1)
-    		{
-    		   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-      			return -1;
-    		}
-			else
-			{
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±Õ´¥·¢\n");
-		  }
+      /*-----Stop Acq-----*/
+      CommandBuffer[1]  = 0x00;
+      CommandBuffer[0]  = 0xa0;
+      if(SendUsbData(instr, CommandBuffer) ==-1)
+	{
+	  MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+	  return -1;
+	}
+      else
+	{
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­è§¦å‘\n");
+	}
       
       GetData_Status=0;  
-			CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
-      SetCtrlVal(mainHandle,Main_TEXTBOX,"Í£Ö¹²ÉÊı\n");
+      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"åœæ­¢é‡‡æ•°\n");
       AcqPackCnt = 0;
-			SetCtrlVal(mainHandle,Main_Acq_Status,0);
-  }    
+      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+    }    
 	
-  SetCtrlVal(mainHandle,Main_TEXTBOX,"Íê³É¼È¶¨¿Ì¶È²âÊÔ\n");
-	  CommandBuffer[1]  = 0x00;
-    CommandBuffer[0]  = 0x10;
-	  if(SendUsbData(instr, CommandBuffer) ==-1)
-		{
-		   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-			return -1;
-		}
-			else
-			{
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"·µ»ØÕı³£²ÉÊıÄ£Ê½\n");
-		  }
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"å®Œæˆæ—¢å®šåˆ»åº¦æµ‹è¯•\n");
+  CommandBuffer[1]  = 0x00;
+  CommandBuffer[0]  = 0x10;
+  if(SendUsbData(instr, CommandBuffer) ==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+      return -1;
+    }
+  else
+    {
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"è¿”å›æ­£å¸¸é‡‡æ•°æ¨¡å¼\n");
+    }
   
   return (0);
 	
@@ -346,621 +346,621 @@ int CVICALLBACK CaliAcq(void *functionData)
 
 int CVICALLBACK SignalSweepAcq(void *functionData)
 {
-	int WaitCnt=0;
-	int ChnID;
-	int i;
-	int n;
-	int flag=0;
-	int FileLength;
-	int Volt;
-	int S_Volt, E_Volt, Step;
-	int WatiCount;
-	unsigned char TempMessage[100];
-	char WrDataFile[300];
-	char timemsg[20];
-	double CurTime;
-	int WaitCount;
-	unsigned char CommandWord[2];
-	char File[100];
-	unsigned char dat[512];
-	char IP[100];
-	ViSession rm;
-	ViSession SignalSource;
-	int IPLength;
-	int four_Cmd,HitEnable,HitChoose,TrigChoose;
-	void OpenSignal(ViSession devise);
-	void CloseSignal(ViSession devise);
-	void SetSignal(ViSession devise, int voltage );
-	BeepFlag=0;
-	GetCtrlVal(signalsweepHandle, PANEL_Sig_InitVolt, &S_Volt);
-	GetCtrlVal(signalsweepHandle, PANEL_Sig_FinalVolt, &E_Volt);
-	GetCtrlVal(signalsweepHandle, PANEL_Sig_Step, &Step);
-	GetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,&ChnID);
-	GetCurrentDateTime(&CurTime);
-	GetCtrlVal(mainHandle,Main_HitEnable,&HitEnable);
-	GetCtrlVal(mainHandle,Main_TrigChoose,&TrigChoose);
-	FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
-	sprintf(TempMessage,"%s\\VA%d",WrDataPath,ChnID);
-	MakeDir(TempMessage);
-	sprintf(WrDataFile,"%s\\VA%d\\%s.dat",WrDataPath,ChnID,timemsg);
-	IPLength=strlen(IPAddress);
-	sprintf(IP,"%s",IPAddress);
-	IP[IPLength+14]='\0';
-	status = viOpenDefaultRM(&rm);
-	if (status < VI_SUCCESS) 
+  int WaitCnt=0;
+  int ChnID;
+  int i;
+  int n;
+  int flag=0;
+  int FileLength;
+  int Volt;
+  int S_Volt, E_Volt, Step;
+  int WatiCount;
+  unsigned char TempMessage[100];
+  char WrDataFile[300];
+  char timemsg[20];
+  double CurTime;
+  int WaitCount;
+  unsigned char CommandWord[2];
+  char File[100];
+  unsigned char dat[512];
+  char IP[100];
+  ViSession rm;
+  ViSession SignalSource;
+  int IPLength;
+  int four_Cmd,HitEnable,HitChoose,TrigChoose;
+  void OpenSignal(ViSession devise);
+  void CloseSignal(ViSession devise);
+  void SetSignal(ViSession devise, int voltage );
+  BeepFlag=0;
+  GetCtrlVal(signalsweepHandle, PANEL_Sig_InitVolt, &S_Volt);
+  GetCtrlVal(signalsweepHandle, PANEL_Sig_FinalVolt, &E_Volt);
+  GetCtrlVal(signalsweepHandle, PANEL_Sig_Step, &Step);
+  GetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,&ChnID);
+  GetCurrentDateTime(&CurTime);
+  GetCtrlVal(mainHandle,Main_HitEnable,&HitEnable);
+  GetCtrlVal(mainHandle,Main_TrigChoose,&TrigChoose);
+  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+  sprintf(TempMessage,"%s\\VA%d",WrDataPath,ChnID);
+  MakeDir(TempMessage);
+  sprintf(WrDataFile,"%s\\VA%d\\%s.dat",WrDataPath,ChnID,timemsg);
+  IPLength=strlen(IPAddress);
+  sprintf(IP,"%s",IPAddress);
+  IP[IPLength+14]='\0';
+  status = viOpenDefaultRM(&rm);
+  if (status < VI_SUCCESS) 
+    {
+      MessagePopup ("é”™è¯¯", "ä¿¡å·æºæ‰“å¼€å¤±è´¥ï¼");
+      return -1;
+    }
+  status = viOpen(rm,IP,VI_NULL,VI_NULL,&SignalSource);
+  if (status < VI_SUCCESS) 
+    {
+      MessagePopup ("é”™è¯¯", "ç½‘ç»œä¿¡å·æºä¸å­˜åœ¨ï¼");
+      return -1;
+    }
+  //	CloseSignal(SignalSource);
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"å¼€å§‹è¿›è¡Œä¿¡å·æºæ‰«ææµ‹è¯•...\n");
+  if(S_Volt>=E_Volt)
+    {
+      MessagePopup("é”™è¯¯","åˆ»åº¦ç”µå‹çš„èµ·å§‹å€¼åº”å°äºç»ˆæ­¢å€¼ï¼");
+      return(-1);
+    }
+  if(Step<=0)
+    {
+      MessagePopup("é”™è¯¯","æ­¥é•¿åº”ä¸ºæ­£å€¼ï¼");
+      return(-1);
+    }
+  FileLength=strlen(WrDataFile);
+  WrDataFile[FileLength-4]='\0';
+  if(Cmd2DAQ_Reset(instr)==-1)
+    {
+      MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return(-1);
+    }
+  Sleep(10);
+  for(i=0;i<16;i++)
+    {
+      if(FEE[i]==0)
+	continue;
+      if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
 	{
-		MessagePopup ("´íÎó", "ĞÅºÅÔ´´ò¿ªÊ§°Ü£¡");
-		return -1;
+	  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	  return(-1);
 	}
-	status = viOpen(rm,IP,VI_NULL,VI_NULL,&SignalSource);
-	if (status < VI_SUCCESS) 
+      else
 	{
-		MessagePopup ("´íÎó", "ÍøÂçĞÅºÅÔ´²»´æÔÚ£¡");
-		return -1;
+	  sprintf(TempMessage,"FEE%dæŒ‚è½½ä¸ºFEE %s\n",i+1,FEENAME[i]);
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	}
-//	CloseSignal(SignalSource);
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"¿ªÊ¼½øĞĞĞÅºÅÔ´É¨Ãè²âÊÔ...\n");
-	if(S_Volt>=E_Volt)
+    }
+  CommandWord[0] = 0x03;
+  CommandWord[1] = 0x3f;
+  if(SendUsbData(instr, CommandWord) ==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+      return -1;
+    }
+  else
+    SetCtrlVal(mainHandle,Main_TEXTBOX,"æ‰€æœ‰é€šé“é€‰æ‹©ä¸ºä¸»ä»½...\n");
+  CommandWord[0] = 0x02;
+  CommandWord[1] = 0x2f;
+  if(SendUsbData(instr, CommandWord)==-1)								 
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return -1;
+    }
+  else
+    SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰é€šé“...\n");
+  CommandWord[0] = 0x0a;
+  CommandWord[1] = 0xaf;
+  if(SendUsbData(instr, CommandWord)==-1)
+    {
+      MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return(-1);
+    }
+  else
+    SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰å‘½ä»¤è¿”å›é€šé“...\n");
+  for(i=0;i<16;i++)
+    {
+      if(FEE[i]==0)
+	continue;
+      if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
 	{
-		MessagePopup("´íÎó","¿Ì¶ÈµçÑ¹µÄÆğÊ¼ÖµÓ¦Ğ¡ÓÚÖÕÖ¹Öµ£¡");
-		return(-1);
+	  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	  return(-1);
 	}
-	if(Step<=0)
+      else
 	{
-		MessagePopup("´íÎó","²½³¤Ó¦ÎªÕıÖµ£¡");
-		return(-1);
+	  sprintf(TempMessage,"FEE %så‘½ä»¤è¿”å›é€šé“æ‰“å¼€...\n",FEENAME[i]);
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	}
-	FileLength=strlen(WrDataFile);
-	WrDataFile[FileLength-4]='\0';
-	if(Cmd2DAQ_Reset(instr)==-1)
-	{
-		MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-		return(-1);
-	}
-	Sleep(10);
-	for(i=0;i<16;i++)
-	{
-		if(FEE[i]==0)
-			continue;
-		if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
-		{
-			MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-			return(-1);
-		}
-		else
-		{
-			sprintf(TempMessage,"FEE%d¹ÒÔØÎªFEE %s\n",i+1,FEENAME[i]);
-			SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-		}
-	}
-			CommandWord[0] = 0x03;
-			CommandWord[1] = 0x3f;
-			if(SendUsbData(instr, CommandWord) ==-1)
-			{
-				MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-				return -1;
-			}
-			else
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"ËùÓĞÍ¨µÀÑ¡ÔñÎªÖ÷·İ...\n");
-			CommandWord[0] = 0x02;
-			CommandWord[1] = 0x2f;
-			if(SendUsbData(instr, CommandWord)==-1)								 
-			{
-			   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-				return -1;
-			}
-			else
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÍ¨µÀ...\n");
-        	CommandWord[0] = 0x0a;
-			CommandWord[1] = 0xaf;
-			if(SendUsbData(instr, CommandWord)==-1)
-			{
-				MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-				return(-1);
-			}
-			else
-				SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÃüÁî·µ»ØÍ¨µÀ...\n");
-	for(i=0;i<16;i++)
-	{
-		if(FEE[i]==0)
-			continue;
-		if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
-		{
-			MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-			return(-1);
-		}
-	else
-	{
-			sprintf(TempMessage,"FEE %sÃüÁî·µ»ØÍ¨µÀ´ò¿ª...\n",FEENAME[i]);
-			SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-		}
-	}	  
-	Cmd2DAQ_ChooseTrigMode(instr,4);									 
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQÑ¡ÔñÎªÍâ´¥·¢...\n");
-	CloseSignal(SignalSource);
-	Cmd2DAQ_ClrFifo(instr);				//1013
-//	SetCtrlVal(mainHandle,Main_TEXTBOX,"clrfifoÖ´ĞĞÍêÁË\n");  
-	status=viRead(instr,dat,512,&n);		
+    }	  
+  Cmd2DAQ_ChooseTrigMode(instr,4);									 
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQé€‰æ‹©ä¸ºå¤–è§¦å‘...\n");
+  CloseSignal(SignalSource);
+  Cmd2DAQ_ClrFifo(instr);				//1013
+  //	SetCtrlVal(mainHandle,Main_TEXTBOX,"clrfifoæ‰§è¡Œå®Œäº†\n");  
+  status=viRead(instr,dat,512,&n);		
 	  
-	Sleep(10);
-/*	while(n!=0)
+  Sleep(10);
+  /*	while(n!=0)
 	{
-		status=viRead(instr,dat,512,&n);
-		Sleep(10);
+	status=viRead(instr,dat,512,&n);
+	Sleep(10);
 	}   			   */
 
-	Cmd2DAQ_SetFifo(instr);			//	  1013
-	for(i=0;i<16;i++)
+  Cmd2DAQ_SetFifo(instr);			//	  1013
+  for(i=0;i<16;i++)
+    {
+      if(FEE[i]==0)
+	continue;
+      if(Cmd2DAQ_EnableFEEChn(instr,i)==-1)
 	{
-		if(FEE[i]==0)
-			continue;
-		if(Cmd2DAQ_EnableFEEChn(instr,i)==-1)
+	  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	  return(-1);
+	}
+      sprintf(TempMessage,"FEE %sé€šé“æ‰“å¼€...\n",FEENAME[i]);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+    }
+  if(Cmd2DAQ_StartAcq(instr)==-1)
+    {
+      MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return(-1);
+    }
+  if(Cmd2DAQ_EnableTrig(instr)==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return -1;
+    }
+  SetSignal(SignalSource,0);
+  for(Volt=S_Volt;Volt<=E_Volt;Volt=Volt+Step)
+    {
+      AcqPackCnt=0;
+      /*	if(Cmd2DAQ_Reset(instr)==-1)
 		{
-			MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-			return(-1);
-		}
-		sprintf(TempMessage,"FEE %sÍ¨µÀ´ò¿ª...\n",FEENAME[i]);
-		SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	}
-	if(Cmd2DAQ_StartAcq(instr)==-1)
-	{
-		MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
+		MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
 		return(-1);
-	}
-	if(Cmd2DAQ_EnableTrig(instr)==-1)
+		}
+		Sleep(10);
+		if(Cmd2DAQ_Reset(instr)==-1)
+		{
+		MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		return(-1);
+		}
+		else
+		SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQ FPGAå¤ä½...\n");			   */
+      /*for(i=0;i<8;i++)
 	{
-		MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-		return -1;
-	}
-	SetSignal(SignalSource,0);
-	for(Volt=S_Volt;Volt<=E_Volt;Volt=Volt+Step)
+	if(FEE[i]==0)
+	continue;
+	if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
 	{
-				AcqPackCnt=0;
-				/*	if(Cmd2DAQ_Reset(instr)==-1)
-				{
-					MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return(-1);
-				}
-				Sleep(10);
-				if(Cmd2DAQ_Reset(instr)==-1)
-				{
-					MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return(-1);
-				}
-				else
-					SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQ FPGA¸´Î»...\n");			   */
-				/*for(i=0;i<8;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-						return(-1);
-					}
-					else
-					{
-						sprintf(TempMessage,"FEE%d¹ÒÔØÎªFEE %s\n",i+1,FEENAME[i]);
-						SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-					}
-				}
-				if(Cmd2DAQ_ChooseMasterFEEChn(instr,0xF)==-1)
-				{
-				   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡£¡");
-					return -1;
-				}
-				else
-				    SetCtrlVal(mainHandle,Main_TEXTBOX,"ËùÓĞÍ¨µÀÑ¡ÔñÎªÖ÷·İ...\n");
-				if(Cmd2DAQ_DisableFEEChn(instr,0xF)==-1)								 
-				{
-				   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return -1;
-				}
-				else
-				    SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÍ¨µÀ...\n");
-				if(Cmd2DAQ_DisableFEECmdChn(instr,0xF)==-1)
-				{
-					MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return(-1);
-				}
-				else
-					SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÃüÁî·µ»ØÍ¨µÀ...\n");
-				for(i=0;i<8;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-						return(-1);
-					}
-					else
-					{
-						sprintf(TempMessage,"FEE %sÃüÁî·µ»ØÍ¨µÀ´ò¿ª...\n",FEENAME[i]);
-						SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-					}
-				}	  */
-				if(COM_Status==1)
-				{
-					if(Monitor_Status==1)
-					{
-						flag=1;
-						Monitor_Status=0;
-						if (threadID4)
-							CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
-						SetCtrlVal(mainHandle, Main_TEXTBOX, "¹Ø±ÕÒ£²âÏß³Ì..\n");
-						SetCtrlVal(mainHandle,Main_Monitor_Status,0);
-						Monitor_Status=0;
-					}
-					for(i=0;i<16;i++)
-					{
-						if(FEE[i]==0)
-							continue;
-						if((ResetFPGA(1,FEEID[i]))==-1)
-						{
-							MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-							return(-1);
-						}
-						Sleep(10);
-						if((ResetFPGA(1,FEEID[i]))==-1)
-						{
-							MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-							return(-1);
-						}
-						else
-						{
-							sprintf(TempMessage,"FEE%s FPGA¸´Î»\n",FEENAME[i]);
-							SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-						}
-					}
-				}		 
-			/*	if(TrigDelay==0)
-				{
-					MessagePopup("´íÎó","Î´ÉèÖÃ´¥·¢ÑÓ³ÙÖµ£¡");
-					return(-1);
-				}			   */
-				TrigDelay = 0x1D;
-				for(i=0;i<16;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if((SetDelay(1,FEEID[i],TrigDelay))==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-						return(-1);
-					}
-					sprintf(TempMessage,"ÉèÖÃFEE %sµÄ´¥·¢ÑÓ³ÙÖµÎª%d...\n",FEENAME[i],TrigDelay);
-					SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				}
-				for(i=0;i<16;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if ( (ConfigReg(1,FEEID[i],0,0,0,0,1,0))==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-						return -1;
-					}
-					else
-					{
-						Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"´¥·¢½ÓÊÕ¹Ø±Õ...\n");
-						SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-					}
-				}
-			//	status=viRead(instr,dat,512,&n);	
-			//	Sleep(100);
-			//	while(n!=0)
-			//	{
-			//		status=viRead(instr,dat,512,&n);
-			//		Sleep(100);
-			//	}
-				sprintf(File,"%s_%dmV.dat",WrDataFile,Volt);
-				fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-				if(fp_write==-1)
-				{
-					MessagePopup ("´íÎó", "ĞÂ½¨Êı¾İ±£´æÎÄ¼şÊ§°Ü£¡");
-					return -1;
-				}
-				SetSignal(SignalSource,Volt);
-				sprintf(TempMessage,"ÉèÖÃĞÅºÅ·¢ÉúÆ÷²úÉúµÄ´¥·¢µçÑ¹Îª%dmV...\n",Volt);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				for(i=0;i<16;i++)
-				{
-					if(FEE[i]==0)
-					continue;
-					if ( (ClearTrig(1,FEEID[i]))==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-						return -1;
-					}
-					else
-					{
-						sprintf(TempMessage,"FEE %s´¥·¢¼ÆÊıÇåÁã...\n",FEENAME[i]);
-						SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-					}
-					SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				}
+	MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	return(-1);
+	}
+	else
+	{
+	sprintf(TempMessage,"FEE%dæŒ‚è½½ä¸ºFEE %s\n",i+1,FEENAME[i]);
+	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	}
+	}
+	if(Cmd2DAQ_ChooseMasterFEEChn(instr,0xF)==-1)
+	{
+	MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼ï¼");
+	return -1;
+	}
+	else
+	SetCtrlVal(mainHandle,Main_TEXTBOX,"æ‰€æœ‰é€šé“é€‰æ‹©ä¸ºä¸»ä»½...\n");
+	if(Cmd2DAQ_DisableFEEChn(instr,0xF)==-1)								 
+	{
+	MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	return -1;
+	}
+	else
+	SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰é€šé“...\n");
+	if(Cmd2DAQ_DisableFEECmdChn(instr,0xF)==-1)
+	{
+	MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	return(-1);
+	}
+	else
+	SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰å‘½ä»¤è¿”å›é€šé“...\n");
+	for(i=0;i<8;i++)
+	{
+	if(FEE[i]==0)
+	continue;
+	if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
+	{
+	MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	return(-1);
+	}
+	else
+	{
+	sprintf(TempMessage,"FEE %så‘½ä»¤è¿”å›é€šé“æ‰“å¼€...\n",FEENAME[i]);
+	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	}
+	}	  */
+      if(COM_Status==1)
+	{
+	  if(Monitor_Status==1)
+	    {
+	      flag=1;
+	      Monitor_Status=0;
+	      if (threadID4)
+		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	      SetCtrlVal(mainHandle, Main_TEXTBOX, "å…³é—­é¥æµ‹çº¿ç¨‹..\n");
+	      SetCtrlVal(mainHandle,Main_Monitor_Status,0);
+	      Monitor_Status=0;
+	    }
+	  for(i=0;i<16;i++)
+	    {
+	      if(FEE[i]==0)
+		continue;
+	      if((ResetFPGA(1,FEEID[i]))==-1)
+		{
+		  MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		  return(-1);
+		}
+	      Sleep(10);
+	      if((ResetFPGA(1,FEEID[i]))==-1)
+		{
+		  MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		  return(-1);
+		}
+	      else
+		{
+		  sprintf(TempMessage,"FEE%s FPGAå¤ä½\n",FEENAME[i]);
+		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+		}
+	    }
+	}		 
+      /*	if(TrigDelay==0)
+		{
+		MessagePopup("é”™è¯¯","æœªè®¾ç½®è§¦å‘å»¶è¿Ÿå€¼ï¼");
+		return(-1);
+		}			   */
+      TrigDelay = 0x1D;
+      for(i=0;i<16;i++)
+	{
+	  if(FEE[i]==0)
+	    continue;
+	  if((SetDelay(1,FEEID[i],TrigDelay))==-1)
+	    {
+	      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	      return(-1);
+	    }
+	  sprintf(TempMessage,"è®¾ç½®FEE %sçš„è§¦å‘å»¶è¿Ÿå€¼ä¸º%d...\n",FEENAME[i],TrigDelay);
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	}
+      for(i=0;i<16;i++)
+	{
+	  if(FEE[i]==0)
+	    continue;
+	  if ( (ConfigReg(1,FEEID[i],0,0,0,0,1,0))==-1)
+	    {
+	      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	      return -1;
+	    }
+	  else
+	    {
+	      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"è§¦å‘æ¥æ”¶å…³é—­...\n");
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	    }
+	}
+      //	status=viRead(instr,dat,512,&n);	
+      //	Sleep(100);
+      //	while(n!=0)
+      //	{
+      //		status=viRead(instr,dat,512,&n);
+      //		Sleep(100);
+      //	}
+      sprintf(File,"%s_%dmV.dat",WrDataFile,Volt);
+      fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
+      if(fp_write==-1)
+	{
+	  MessagePopup ("é”™è¯¯", "æ–°å»ºæ•°æ®ä¿å­˜æ–‡ä»¶å¤±è´¥ï¼");
+	  return -1;
+	}
+      SetSignal(SignalSource,Volt);
+      sprintf(TempMessage,"è®¾ç½®ä¿¡å·å‘ç”Ÿå™¨äº§ç”Ÿçš„è§¦å‘ç”µå‹ä¸º%dmV...\n",Volt);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+      for(i=0;i<16;i++)
+	{
+	  if(FEE[i]==0)
+	    continue;
+	  if ( (ClearTrig(1,FEEID[i]))==-1)
+	    {
+	      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	      return -1;
+	    }
+	  else
+	    {
+	      sprintf(TempMessage,"FEE %sè§¦å‘è®¡æ•°æ¸…é›¶...\n",FEENAME[i]);
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	    }
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	}
 		
-				OpenSignal(SignalSource);
-				Sleep(100);
-				for(i=0;i<16;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if(ConfigReg(1,FEEID[i],HitEnable,0,TrigChoose,0,0,1)==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-						return(-1);
-					}
-					sprintf(TempMessage,"Íê³É¶ÔFEE %sµÄÅäÖÃ...\n",FEENAME[i]);
-					SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				}
-				sprintf(TempMessage,"¿ªÊ¼%dmVĞÅºÅÔ´É¨Ãè²âÊÔ...\n",Volt);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				SetCtrlVal(mainHandle,Main_Acq_Status,1);
-				SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,1);
-		/*		for(AcqPackCnt=0;AcqPackCnt<200;)
-				{
-					status=viRead(instr,dat,512,&n);
-					if (n!=0)
-					{
-						WaitCount=0;
-						AcqPackCnt++;
-						WriteFile (fp_write, dat,n);
-					}
-					else
-					{   
-						if(USB_Status==0)
-						{
-							SetCtrlVal(mainHandle,Main_TEXTBOX,"USBÉè±¸¶Ï¿ª£¬²É¼¯ÖĞ¶Ï£¡\n");
-							break;
-						}
-						else
-						{
-							SetCtrlVal(mainHandle,Main_TEXTBOX,"µÈ´ıÊı¾İ¡­¡­\n");
-							Sleep(100);
-				//			WaitCount++;
-						}
-					}
-				}	*/ 
-				GetData_Status=1;
-				CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,"¿ªÊ¼²É¼¯\n"); 
-				while(AcqPackCnt<200)
-				{
-					if(SignalSweep_Status==0)
-					{   
-							GetData_Status=0;
-							CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
-
-							if(Cmd2DAQ_DisableTrig(instr)==-1)
-							{
-								MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-								return(-1);
-							}
-							else
-								SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQ´¥·¢Ê¹ÄÜ¹Ø±Õ...\n");
-							for(i=0;i<16;i++)
-							{
-								if(Cmd2DAQ_DisableTrig(instr)==-1)
-								{
-									MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-									return -1;
-								}
-								if(FEE[i]==0)
-									continue;
-								if ( (ConfigReg(1,FEEID[i],0,0,0,0,0,0))==-1)
-								{
-									MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-									return -1;
-								}
-								else
-								{
-									Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"´¥·¢½ÓÊÕ¹Ø±Õ...\n");
-									SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-								}
-							}
-				            CommandWord[0] = 0x02;
-							CommandWord[1] = 0x2f;
-							if(SendUsbData(instr, CommandWord)==-1)									 
-							{
-								  	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-								return -1;
-							}
-							else
-							    SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÍ¨µÀ...\n");
-								if(Cmd2DAQ_StopAcq(instr)==-1)
-								{
-								   	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-									return -1;
-								}
-								else
-								    SetCtrlVal(mainHandle,Main_TEXTBOX,"¶ÁÈ¡Ê£ÓàÊı¾İ...\n");  
-								Sleep(500); 
-								GetData_Status=0;
-								Sleep(100); 
-								SetCtrlVal(mainHandle,Main_Acq_Status,0);
-								SetCtrlVal(mainHandle,Main_TEXTBOX,"½áÊø²É¼¯ÃüÁî·¢³ö...\n");
-								CloseFile(fp_write);
-								SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
-								SetCtrlVal(mainHandle,Main_Acq_Status,0);
-								CloseFile(fp_write);
-								return(-1);
-					}
-					else
-						Sleep(1000);
-				
-				}
-				for(i=0;i<16;i++)
-				{
-					if(FEE[i]==0)
-						continue;
-					if ( (ConfigReg(1,FEEID[i],0,0,0,0,1,0))==-1)
-					{
-						MessagePopup("´íÎó","·¢ËÍCOMÅäÖÃÃüÁîÊ§°Ü£¡");
-						return -1;
-					}
-					else
-					{
-						Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"´¥·¢½ÓÊÕ¹Ø±Õ...\n");
-						SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-					}
-				}
-				CloseSignal(SignalSource);
-				if(Cmd2DAQ_ClrFifo(instr)==-1)
-				{
-					MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return(-1);
-				}
-				Sleep(500);
-				GetData_Status=0;
-				CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
-				sprintf(TempMessage,"Íê³É%dmVĞÅºÅÔ´²âÊÔ...\n",Volt);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				SetCtrlVal(mainHandle,Main_Acq_Status,0);
-				CloseFile(fp_write);
-				if(Cmd2DAQ_SetFifo(instr)==-1)
-				{
-					MessagePopup("´íÎó","·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-					return(-1);
-				}
-				SetCtrlVal(mainHandle,Main_Acq_Status,0);
-				CloseFile(fp_write);
-				SetCtrlAttribute(mainHandle,Main_Save_Path,ATTR_DIMMED,0);
-	}
-	if(Cmd2DAQ_DisableTrig(instr)==-1)
+      OpenSignal(SignalSource);
+      Sleep(100);
+      for(i=0;i<16;i++)
 	{
-		MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-		return -1;
+	  if(FEE[i]==0)
+	    continue;
+	  if(ConfigReg(1,FEEID[i],HitEnable,0,TrigChoose,0,0,1)==-1)
+	    {
+	      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	      return(-1);
+	    }
+	  sprintf(TempMessage,"å®Œæˆå¯¹FEE %sçš„é…ç½®...\n",FEENAME[i]);
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	}
-	if(Cmd2DAQ_StopAcq(instr)==-1)
-	{
-		MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-		return -1;
-	}
-            CommandWord[0] = 0x02;
-			CommandWord[1] = 0x2f;
-			if(SendUsbData(instr, CommandWord)==-1)									 
+      sprintf(TempMessage,"å¼€å§‹%dmVä¿¡å·æºæ‰«ææµ‹è¯•...\n",Volt);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+      SetCtrlVal(mainHandle,Main_Acq_Status,1);
+      SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,1);
+      /*		for(AcqPackCnt=0;AcqPackCnt<200;)
 			{
-				  	MessagePopup ("´íÎó", "·¢ËÍUSBÅäÖÃÃüÁîÊ§°Ü£¡");
-				return -1;
+			status=viRead(instr,dat,512,&n);
+			if (n!=0)
+			{
+			WaitCount=0;
+			AcqPackCnt++;
+			WriteFile (fp_write, dat,n);
 			}
 			else
-			    SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕËùÓĞÍ¨µÀ...\n");
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"Íê³ÉĞÅºÅÔ´É¨Ãè²âÊÔ...\n");
-	SignalSweep_Status=0;
-	SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
-	SetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,(ChnID+1));
-	BeepFlag=1;
-	CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE,BeepFunction, &mainHandle, &threadID7);
-	MessagePopup("Íê³É","ÇëÊÖ¶¯ÇĞ»»µ½ÏÂÒ»¿éĞ¾Æ¬£¡£¡£¡");
-	BeepFlag=0;
-	return(0);
+			{   
+			if(USB_Status==0)
+			{
+			SetCtrlVal(mainHandle,Main_TEXTBOX,"USBè®¾å¤‡æ–­å¼€ï¼Œé‡‡é›†ä¸­æ–­ï¼\n");
+			break;
+			}
+			else
+			{
+			SetCtrlVal(mainHandle,Main_TEXTBOX,"ç­‰å¾…æ•°æ®â€¦â€¦\n");
+			Sleep(100);
+			//			WaitCount++;
+			}
+			}
+			}	*/ 
+      GetData_Status=1;
+      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"å¼€å§‹é‡‡é›†\n"); 
+      while(AcqPackCnt<200)
+	{
+	  if(SignalSweep_Status==0)
+	    {   
+	      GetData_Status=0;
+	      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+
+	      if(Cmd2DAQ_DisableTrig(instr)==-1)
+		{
+		  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		  return(-1);
+		}
+	      else
+		SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQè§¦å‘ä½¿èƒ½å…³é—­...\n");
+	      for(i=0;i<16;i++)
+		{
+		  if(Cmd2DAQ_DisableTrig(instr)==-1)
+		    {
+		      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		      return -1;
+		    }
+		  if(FEE[i]==0)
+		    continue;
+		  if ( (ConfigReg(1,FEEID[i],0,0,0,0,0,0))==-1)
+		    {
+		      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		      return -1;
+		    }
+		  else
+		    {
+		      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"è§¦å‘æ¥æ”¶å…³é—­...\n");
+		      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+		    }
+		}
+	      CommandWord[0] = 0x02;
+	      CommandWord[1] = 0x2f;
+	      if(SendUsbData(instr, CommandWord)==-1)									 
+		{
+		  MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		  return -1;
+		}
+	      else
+		SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰é€šé“...\n");
+	      if(Cmd2DAQ_StopAcq(instr)==-1)
+		{
+		  MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+		  return -1;
+		}
+	      else
+		SetCtrlVal(mainHandle,Main_TEXTBOX,"è¯»å–å‰©ä½™æ•°æ®...\n");  
+	      Sleep(500); 
+	      GetData_Status=0;
+	      Sleep(100); 
+	      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,"ç»“æŸé‡‡é›†å‘½ä»¤å‘å‡º...\n");
+	      CloseFile(fp_write);
+	      SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
+	      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+	      CloseFile(fp_write);
+	      return(-1);
+	    }
+	  else
+	    Sleep(1000);
+				
+	}
+      for(i=0;i<16;i++)
+	{
+	  if(FEE[i]==0)
+	    continue;
+	  if ( (ConfigReg(1,FEEID[i],0,0,0,0,1,0))==-1)
+	    {
+	      MessagePopup("é”™è¯¯","å‘é€COMé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	      return -1;
+	    }
+	  else
+	    {
+	      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"è§¦å‘æ¥æ”¶å…³é—­...\n");
+	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+	    }
+	}
+      CloseSignal(SignalSource);
+      if(Cmd2DAQ_ClrFifo(instr)==-1)
+	{
+	  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	  return(-1);
+	}
+      Sleep(500);
+      GetData_Status=0;
+      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      sprintf(TempMessage,"å®Œæˆ%dmVä¿¡å·æºæµ‹è¯•...\n",Volt);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+      CloseFile(fp_write);
+      if(Cmd2DAQ_SetFifo(instr)==-1)
+	{
+	  MessagePopup("é”™è¯¯","å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+	  return(-1);
+	}
+      SetCtrlVal(mainHandle,Main_Acq_Status,0);
+      CloseFile(fp_write);
+      SetCtrlAttribute(mainHandle,Main_Save_Path,ATTR_DIMMED,0);
+    }
+  if(Cmd2DAQ_DisableTrig(instr)==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return -1;
+    }
+  if(Cmd2DAQ_StopAcq(instr)==-1)
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return -1;
+    }
+  CommandWord[0] = 0x02;
+  CommandWord[1] = 0x2f;
+  if(SendUsbData(instr, CommandWord)==-1)									 
+    {
+      MessagePopup ("é”™è¯¯", "å‘é€USBé…ç½®å‘½ä»¤å¤±è´¥ï¼");
+      return -1;
+    }
+  else
+    SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­æ‰€æœ‰é€šé“...\n");
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"å®Œæˆä¿¡å·æºæ‰«ææµ‹è¯•...\n");
+  SignalSweep_Status=0;
+  SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
+  SetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,(ChnID+1));
+  BeepFlag=1;
+  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE,BeepFunction, &mainHandle, &threadID7);
+  MessagePopup("å®Œæˆ","è¯·æ‰‹åŠ¨åˆ‡æ¢åˆ°ä¸‹ä¸€å—èŠ¯ç‰‡ï¼ï¼ï¼");
+  BeepFlag=0;
+  return(0);
 }
 
 int CVICALLBACK BeepFunction(void *functionData)
 {
-	while(BeepFlag==1)
-	{
-		Beep();
-		Sleep(800);
-	}
-	return(0);
+  while(BeepFlag==1)
+    {
+      Beep();
+      Sleep(800);
+    }
+  return(0);
 }
 
 ViUInt32 retCnt = 0, itemCnt = 0;
 
-void OpenSignal(ViSession devise)											    //´ò¿ªĞÅºÅÔ´Êä³ö
+void OpenSignal(ViSession devise)											    //æ‰“å¼€ä¿¡å·æºè¾“å‡º
 {
-	unsigned char TempMessage[100];
-	sprintf(TempMessage,"OUTPut2:STATe ON");
-	status = viWrite(devise, (ViBuf)TempMessage, 17, &retCnt);
-	if (status < VI_SUCCESS)
-	{	
-		MessagePopup ("´íÎó", "Î´ÄÜ´ò¿ªĞÅºÅÔ´£¡");
-		return;
-	}
-	sprintf(TempMessage,"OUTPut1:STATe ON");
-	status = viWrite(devise, (ViBuf)TempMessage, 17, &retCnt);
-	if (status < VI_SUCCESS)
-	{	
-		MessagePopup ("´íÎó", "Î´ÄÜ´ò¿ªĞÅºÅÔ´£¡");
-		return;
-	}
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"´ò¿ªĞÅºÅÔ´£¡\n");
-	return;
+  unsigned char TempMessage[100];
+  sprintf(TempMessage,"OUTPut2:STATe ON");
+  status = viWrite(devise, (ViBuf)TempMessage, 17, &retCnt);
+  if (status < VI_SUCCESS)
+    {	
+      MessagePopup ("é”™è¯¯", "æœªèƒ½æ‰“å¼€ä¿¡å·æºï¼");
+      return;
+    }
+  sprintf(TempMessage,"OUTPut1:STATe ON");
+  status = viWrite(devise, (ViBuf)TempMessage, 17, &retCnt);
+  if (status < VI_SUCCESS)
+    {	
+      MessagePopup ("é”™è¯¯", "æœªèƒ½æ‰“å¼€ä¿¡å·æºï¼");
+      return;
+    }
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"æ‰“å¼€ä¿¡å·æºï¼\n");
+  return;
 }
 
-void CloseSignal(ViSession devise)												//¹Ø±ÕĞÅºÅÔ´Êä³ö
+void CloseSignal(ViSession devise)												//å…³é—­ä¿¡å·æºè¾“å‡º
 {
-	unsigned char TempMessage[100];
-	sprintf(TempMessage,"OUTPut1:STATe OFF");
-	status = viWrite(devise, (ViBuf)TempMessage, 18, &retCnt);
-	if (status < VI_SUCCESS)
-	{	
-		MessagePopup ("´íÎó", "Î´ÄÜ¹Ø±ÕĞÅºÅÔ´£¡");
-		return;
-	}
-	sprintf(TempMessage,"OUTPut2:STATe OFF");
-	status = viWrite(devise, (ViBuf)TempMessage, 18, &retCnt);
-	if (status < VI_SUCCESS)
-	{	
-		MessagePopup ("´íÎó", "Î´ÄÜ¹Ø±ÕĞÅºÅÔ´£¡");
-		return;
-	}
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"¹Ø±ÕĞÅºÅÔ´£¡\n");
-	return;
+  unsigned char TempMessage[100];
+  sprintf(TempMessage,"OUTPut1:STATe OFF");
+  status = viWrite(devise, (ViBuf)TempMessage, 18, &retCnt);
+  if (status < VI_SUCCESS)
+    {	
+      MessagePopup ("é”™è¯¯", "æœªèƒ½å…³é—­ä¿¡å·æºï¼");
+      return;
+    }
+  sprintf(TempMessage,"OUTPut2:STATe OFF");
+  status = viWrite(devise, (ViBuf)TempMessage, 18, &retCnt);
+  if (status < VI_SUCCESS)
+    {	
+      MessagePopup ("é”™è¯¯", "æœªèƒ½å…³é—­ä¿¡å·æºï¼");
+      return;
+    }
+  SetCtrlVal(mainHandle,Main_TEXTBOX,"å…³é—­ä¿¡å·æºï¼\n");
+  return;
 }
 
-void SetSignal(ViSession devise, int voltage )									//ÉèÖÃĞÅºÅÔ´µÄ·ù¶ÈºÍÆ«ÖÃ
+void SetSignal(ViSession devise, int voltage )									//è®¾ç½®ä¿¡å·æºçš„å¹…åº¦å’Œåç½®
 {
-	float v, o;
-	char Vol[10], Off[10];
-	char VolStr[60];
-	char OffStr[60];
-	sprintf(VolStr,"SOURce2:VOLTage:LEVel:IMMediate:AMPLitude ");
-	sprintf(OffStr,"SOURce2:VOLTage:LEVel:IMMediate:OFFSet ");
-	v=(float)voltage/1000;
-	o=v/2;
-	sprintf(Vol,"%.3f",v);
-	strcat(VolStr,Vol);
-	status = viWrite(devise, (ViBuf) VolStr, strlen(VolStr) + 1, &retCnt);
-	if (status < VI_SUCCESS)
-	{
-		MessagePopup ("´íÎó", "µçÑ¹·ù¶ÈÉèÖÃÊ§°Ü£¡");
-		return;
-	}
-	sprintf(Off,"%.3f",o);
-	strcat(OffStr,Off);
-	status = viWrite(devise, (ViBuf) OffStr, strlen(OffStr) + 1, &retCnt);
-	if (status < VI_SUCCESS)
-	{
-		MessagePopup ("´íÎó", "Æ«ÖÃµçÑ¹ÉèÖÃÊ§°Ü£¡");
-		return;
-	}
-	return;
+  float v, o;
+  char Vol[10], Off[10];
+  char VolStr[60];
+  char OffStr[60];
+  sprintf(VolStr,"SOURce2:VOLTage:LEVel:IMMediate:AMPLitude ");
+  sprintf(OffStr,"SOURce2:VOLTage:LEVel:IMMediate:OFFSet ");
+  v=(float)voltage/1000;
+  o=v/2;
+  sprintf(Vol,"%.3f",v);
+  strcat(VolStr,Vol);
+  status = viWrite(devise, (ViBuf) VolStr, strlen(VolStr) + 1, &retCnt);
+  if (status < VI_SUCCESS)
+    {
+      MessagePopup ("é”™è¯¯", "ç”µå‹å¹…åº¦è®¾ç½®å¤±è´¥ï¼");
+      return;
+    }
+  sprintf(Off,"%.3f",o);
+  strcat(OffStr,Off);
+  status = viWrite(devise, (ViBuf) OffStr, strlen(OffStr) + 1, &retCnt);
+  if (status < VI_SUCCESS)
+    {
+      MessagePopup ("é”™è¯¯", "åç½®ç”µå‹è®¾ç½®å¤±è´¥ï¼");
+      return;
+    }
+  return;
 }
 
 int CVICALLBACK TestA(void *functionData)
 {
 
-	int i, j, n=0;
-	char TempMessage[1000];
+  int i, j, n=0;
+  char TempMessage[1000];
 
-	while(TestA_Status)
+  while(TestA_Status)
+    {
+      if(n%10==0)
 	{
-			if(n%10==0)
-			{
-				SetCtrlVal(mainHandle,Main_TEXTBOX,"²âÊÔÏß³Ì\n"); 
-			}
-			n++;
-			Sleep(100);
-			
-		//ÕâÀï¿ÉÒÔÌí¼Óº¯Êı½øĞĞ²É¼¯²»µ½Êı¾İµÄ²Ù×÷
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"æµ‹è¯•çº¿ç¨‹\n"); 
 	}
-	sprintf(TempMessage,"²âÊÔÏß³Ì½áÊø...\n");
-	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	return(0);
+      n++;
+      Sleep(100);
+			
+      //è¿™é‡Œå¯ä»¥æ·»åŠ å‡½æ•°è¿›è¡Œé‡‡é›†ä¸åˆ°æ•°æ®çš„æ“ä½œ
+    }
+  sprintf(TempMessage,"æµ‹è¯•çº¿ç¨‹ç»“æŸ...\n");
+  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
+  return(0);
 }
 
 
