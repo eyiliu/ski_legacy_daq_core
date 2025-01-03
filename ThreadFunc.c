@@ -1,11 +1,15 @@
-#include <windows.h>
-#include <rs232.h>
-#include <utility.h>
-#include <ansi_c.h>
-#include <formatio.h>
-#include <visa.h>
-#include <userint.h>
+/* #include <windows.h> */
+/* #include <rs232.h> */
+/* #include <utility.h> */
+/* #include <ansi_c.h> */
+/* #include <formatio.h> */
+#include "fix.hh"
+
+#include <ni-visa/visa.h>
+/* #include <userint.h> */
 #include <stdio.h>
+#include <cstring>
+#include <unistd.h>
 #include "All.h"
 int AcqPackCnt;
 int fp_TAConfig;
@@ -14,13 +18,15 @@ FILE *fp_temperature;
 FILE *fp_current;
 unsigned char CommandWord[2]; 
 
-unsigned char High_Cmd[5] = {0x51,0x52,0x52,0x53,0x53,0x54};
-unsigned char Low_Cmd[5]  = {0x98,0x21,0xa9,0x31,0xb7,0x40};	
+unsigned char High_Cmd[6] = {0x51,0x52,0x52,0x53,0x53,0x54};
+unsigned char Low_Cmd[6]  = {0x98,0x21,0xa9,0x31,0xb7,0x40};	
 int CVICALLBACK DataAcq(void *functionData)
 {
   //	unsigned char dat[512], TempMessage[100];
-  unsigned char dat[2048], TempMessage[100];  
-  int i, j, n;
+  unsigned char dat[2048];
+  char TempMessage[100];  
+  int i, j;
+  unsigned int n;
   int WaitCnt=0;
   AcqPackCnt=0;
   int Cnt_AcqPackage = 0;
@@ -31,7 +37,7 @@ int CVICALLBACK DataAcq(void *functionData)
 	{
 	  WaitCnt=0;
 	  AcqPackCnt++;
-	  WriteFile (fp_write, dat,n);
+	  //WriteFile (fp_write, dat,n);
 	  if(AcqPackCnt%1000==0)
 	    {
 	      sprintf(TempMessage,"采集到 %d 个数据包(每个数据包512Byte)...\n",AcqPackCnt);        
@@ -40,17 +46,10 @@ int CVICALLBACK DataAcq(void *functionData)
 	}
       else
 	{   
-	  /*if(USB_Status==0)
-	    {
-	    SetCtrlVal(mainHandle,Main_TEXTBOX,"USB设备断开，采集中断！\n");
-	    break;
-	    }
-	    else
-	    {		  */
 	  if(GetData_Status==1)
 	    {
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,"等待数据……\n");
-	      Beep();
+	      //Beep();
 	      //	Sleep(100);
 	      WaitCnt++;
 	    }
@@ -81,7 +80,7 @@ int CVICALLBACK Acqing(void *functionData)
 	{
 	  SetCtrlVal(mainHandle,Main_Acq_ing,1);
 	}
-      Sleep(200);
+      sleep(200);
       Cnt_AcqPack_Delay = Cnt_AcqPack;
     }
   SetCtrlVal(mainHandle,Main_Acq_ing,0); 
@@ -108,40 +107,19 @@ int CVICALLBACK USBStatus (void* functionData)						  //查询USB端口状态线
 	      while(1)
 		{
 				
-		  Beep();
-		  Sleep(500);
+		  //Beep();
+		  sleep(500);
 					
 		}
 				
 			
 	    }
 	}
-      Sleep(1000);
+      sleep(1000);
     }
   return 0;
 }
 
-int CVICALLBACK COMStatus (void* functionData)
-{
-  while(COM_Status==1)
-    {
-      Error=ReturnRS232Err ();
-      if (Error<0)
-	{
-	  COM_Status=0;
-	  GetData_Status=0;
-	  AcqPackCnt=0;
-	  Monitor_Status=0;
-	  SetCtrlVal(mainHandle,Main_COM_Status,0);
-	  SetCtrlVal(mainHandle,Main_Acq_Status,0);
-	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
-	  MessagePopup("错误","COM设备断开！");
-	  return -1;
-	}
-      Sleep(1000);
-    }
-  return 0;
-}
 
 int CVICALLBACK MonitorFunction (void* functionData)
 {
@@ -219,7 +197,7 @@ int CVICALLBACK MonitorFunction (void* functionData)
 	  n=1;
 	}
 		
-      Sleep(100);
+      sleep(100);
       n++;
     }
   fclose(fp_temperature);
@@ -230,14 +208,14 @@ int CVICALLBACK MonitorFunction (void* functionData)
 int CVICALLBACK CaliAcq(void *functionData)
 {
   unsigned char CommandBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int i;
   int Volt = 0;
   int FileLength;
  
-  char timemsg[20];
-  double CurTime;
-
+  char timemsg[20]="0000-00-00-00-00-00";
+  /* double CurTime; */
+  
   char WrDataFile[300];
   char File[100];
 
@@ -253,22 +231,23 @@ int CVICALLBACK CaliAcq(void *functionData)
     {
       SetCtrlVal(mainHandle,Main_TEXTBOX,"进入刻度模式\n");
     }
-  GetCurrentDateTime(&CurTime);
+  /* GetCurrentDateTime(&CurTime); */
 
-  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+  /* FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20); */
 
+  
   sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);		 
   FileLength=strlen(WrDataFile);
   WrDataFile[FileLength-4]='\0';
   
   for( i = 0 ; i <8 ; i++)
     {	  
-      Sleep(100);
+      sleep(100);
       /*-------Creat file------------------------------*/
       Volt  =  i*100;
       sprintf(File,"%s_%d.dat",WrDataFile,Volt);
-      fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-      if(fp_write==-1)
+      fp_write=fopen (File, "wb+");
+      if(fp_write==NULL)
 	{
 	  MessagePopup ("错误", "新建数据保存文件失败！");
 	  return -1;
@@ -287,7 +266,8 @@ int CVICALLBACK CaliAcq(void *functionData)
 	}
       /*------------Start Acq----------------*/
       GetData_Status=1;
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);       
+      //std::thread
+      /* CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);        */
       SetCtrlVal(mainHandle,Main_Acq_Status,1);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"开始采数\n");
       CommandBuffer[1]  = 0x00;
@@ -304,7 +284,7 @@ int CVICALLBACK CaliAcq(void *functionData)
       
       while( AcqPackCnt  < 300)
 	{
-	  Sleep(300);
+	  sleep(300);
 	}				
       
       /*-----Stop Acq-----*/
@@ -320,8 +300,9 @@ int CVICALLBACK CaliAcq(void *functionData)
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭触发\n");
 	}
       
-      GetData_Status=0;  
-      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      GetData_Status=0;
+      //std::thread
+      //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"停止采数\n");
       AcqPackCnt = 0;
       SetCtrlVal(mainHandle,Main_Acq_Status,0);
@@ -349,16 +330,16 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
   int WaitCnt=0;
   int ChnID;
   int i;
-  int n;
+  unsigned int n;
   int flag=0;
   int FileLength;
   int Volt;
   int S_Volt, E_Volt, Step;
   int WatiCount;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   char WrDataFile[300];
-  char timemsg[20];
-  double CurTime;
+  char timemsg[20]="0000-00-00-00-00-00";
+  /* double CurTime; */
   int WaitCount;
   unsigned char CommandWord[2];
   char File[100];
@@ -376,15 +357,15 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
   GetCtrlVal(signalsweepHandle, PANEL_Sig_FinalVolt, &E_Volt);
   GetCtrlVal(signalsweepHandle, PANEL_Sig_Step, &Step);
   GetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,&ChnID);
-  GetCurrentDateTime(&CurTime);
+  //GetCurrentDateTime(&CurTime);
   GetCtrlVal(mainHandle,Main_HitEnable,&HitEnable);
   GetCtrlVal(mainHandle,Main_TrigChoose,&TrigChoose);
-  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+  //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
   sprintf(TempMessage,"%s\\VA%d",WrDataPath,ChnID);
-  MakeDir(TempMessage);
+  //MakeDir(TempMessage);
   sprintf(WrDataFile,"%s\\VA%d\\%s.dat",WrDataPath,ChnID,timemsg);
-  IPLength=strlen(IPAddress);
-  sprintf(IP,"%s",IPAddress);
+  IPLength=strlen((char*)IPAddress);
+  sprintf(IP,"%s",(char*)IPAddress);
   IP[IPLength+14]='\0';
   status = viOpenDefaultRM(&rm);
   if (status < VI_SUCCESS) 
@@ -417,7 +398,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
       MessagePopup("错误","发送USB配置命令失败！");
       return(-1);
     }
-  Sleep(10);
+  sleep(10);
   for(i=0;i<16;i++)
     {
       if(FEE[i]==0)
@@ -482,12 +463,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
   //	SetCtrlVal(mainHandle,Main_TEXTBOX,"clrfifo执行完了\n");  
   status=viRead(instr,dat,512,&n);		
 	  
-  Sleep(10);
-  /*	while(n!=0)
-	{
-	status=viRead(instr,dat,512,&n);
-	Sleep(10);
-	}   			   */
+  sleep(10);
 
   Cmd2DAQ_SetFifo(instr);			//	  1013
   for(i=0;i<16;i++)
@@ -516,109 +492,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
   for(Volt=S_Volt;Volt<=E_Volt;Volt=Volt+Step)
     {
       AcqPackCnt=0;
-      /*	if(Cmd2DAQ_Reset(instr)==-1)
-		{
-		MessagePopup("错误","发送USB配置命令失败！");
-		return(-1);
-		}
-		Sleep(10);
-		if(Cmd2DAQ_Reset(instr)==-1)
-		{
-		MessagePopup("错误","发送USB配置命令失败！");
-		return(-1);
-		}
-		else
-		SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQ FPGA复位...\n");			   */
-      /*for(i=0;i<8;i++)
-	{
-	if(FEE[i]==0)
-	continue;
-	if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
-	{
-	MessagePopup("错误","发送USB配置命令失败！");
-	return(-1);
-	}
-	else
-	{
-	sprintf(TempMessage,"FEE%d挂载为FEE %s\n",i+1,FEENAME[i]);
-	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	}
-	}
-	if(Cmd2DAQ_ChooseMasterFEEChn(instr,0xF)==-1)
-	{
-	MessagePopup ("错误", "发送USB配置命令失败！！");
-	return -1;
-	}
-	else
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"所有通道选择为主份...\n");
-	if(Cmd2DAQ_DisableFEEChn(instr,0xF)==-1)								 
-	{
-	MessagePopup ("错误", "发送USB配置命令失败！");
-	return -1;
-	}
-	else
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭所有通道...\n");
-	if(Cmd2DAQ_DisableFEECmdChn(instr,0xF)==-1)
-	{
-	MessagePopup("错误","发送USB配置命令失败！");
-	return(-1);
-	}
-	else
-	SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭所有命令返回通道...\n");
-	for(i=0;i<8;i++)
-	{
-	if(FEE[i]==0)
-	continue;
-	if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
-	{
-	MessagePopup("错误","发送USB配置命令失败！");
-	return(-1);
-	}
-	else
-	{
-	sprintf(TempMessage,"FEE %s命令返回通道打开...\n",FEENAME[i]);
-	SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-	}
-	}	  */
-      if(COM_Status==1)
-	{
-	  if(Monitor_Status==1)
-	    {
-	      flag=1;
-	      Monitor_Status=0;
-	      if (threadID4)
-		CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
-	      SetCtrlVal(mainHandle, Main_TEXTBOX, "关闭遥测线程..\n");
-	      SetCtrlVal(mainHandle,Main_Monitor_Status,0);
-	      Monitor_Status=0;
-	    }
-	  for(i=0;i<16;i++)
-	    {
-	      if(FEE[i]==0)
-		continue;
-	      if((ResetFPGA(1,FEEID[i]))==-1)
-		{
-		  MessagePopup("错误","发送COM配置命令失败！");
-		  return(-1);
-		}
-	      Sleep(10);
-	      if((ResetFPGA(1,FEEID[i]))==-1)
-		{
-		  MessagePopup("错误","发送COM配置命令失败！");
-		  return(-1);
-		}
-	      else
-		{
-		  sprintf(TempMessage,"FEE%s FPGA复位\n",FEENAME[i]);
-		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-		}
-	    }
-	}		 
-      /*	if(TrigDelay==0)
-		{
-		MessagePopup("错误","未设置触发延迟值！");
-		return(-1);
-		}			   */
+		 
       TrigDelay = 0x1D;
       for(i=0;i<16;i++)
 	{
@@ -643,20 +517,14 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 	    }
 	  else
 	    {
-	      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
+	      sprintf(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }
 	}
-      //	status=viRead(instr,dat,512,&n);	
-      //	Sleep(100);
-      //	while(n!=0)
-      //	{
-      //		status=viRead(instr,dat,512,&n);
-      //		Sleep(100);
-      //	}
+
       sprintf(File,"%s_%dmV.dat",WrDataFile,Volt);
-      fp_write=OpenFile (File, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-      if(fp_write==-1)
+      fp_write=fopen(File, "wb+");
+      if(fp_write==NULL)
 	{
 	  MessagePopup ("错误", "新建数据保存文件失败！");
 	  return -1;
@@ -682,7 +550,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 	}
 		
       OpenSignal(SignalSource);
-      Sleep(100);
+      sleep(100);
       for(i=0;i<16;i++)
 	{
 	  if(FEE[i]==0)
@@ -698,40 +566,18 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
       sprintf(TempMessage,"开始%dmV信号源扫描测试...\n",Volt);
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
       SetCtrlVal(mainHandle,Main_Acq_Status,1);
-      SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,1);
-      /*		for(AcqPackCnt=0;AcqPackCnt<200;)
-			{
-			status=viRead(instr,dat,512,&n);
-			if (n!=0)
-			{
-			WaitCount=0;
-			AcqPackCnt++;
-			WriteFile (fp_write, dat,n);
-			}
-			else
-			{   
-			if(USB_Status==0)
-			{
-			SetCtrlVal(mainHandle,Main_TEXTBOX,"USB设备断开，采集中断！\n");
-			break;
-			}
-			else
-			{
-			SetCtrlVal(mainHandle,Main_TEXTBOX,"等待数据……\n");
-			Sleep(100);
-			//			WaitCount++;
-			}
-			}
-			}	*/ 
+      //SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,1);
       GetData_Status=1;
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
+      //std::thread
+      //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"开始采集\n"); 
       while(AcqPackCnt<200)
 	{
 	  if(SignalSweep_Status==0)
 	    {   
 	      GetData_Status=0;
-	      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	      //std::thread
+	      //	      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
 
 	      if(Cmd2DAQ_DisableTrig(instr)==-1)
 		{
@@ -756,7 +602,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 		    }
 		  else
 		    {
-		      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
+		      sprintf(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
 		      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		    }
 		}
@@ -776,19 +622,19 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 		}
 	      else
 		SetCtrlVal(mainHandle,Main_TEXTBOX,"读取剩余数据...\n");  
-	      Sleep(500); 
+	      sleep(500); 
 	      GetData_Status=0;
-	      Sleep(100); 
+	      sleep(100); 
 	      SetCtrlVal(mainHandle,Main_Acq_Status,0);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,"结束采集命令发出...\n");
-	      CloseFile(fp_write);
-	      SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
+	      fclose(fp_write);
+	      /* SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0); */
 	      SetCtrlVal(mainHandle,Main_Acq_Status,0);
-	      CloseFile(fp_write);
+	      fclose(fp_write);
 	      return(-1);
 	    }
 	  else
-	    Sleep(1000);
+	    sleep(1000);
 				
 	}
       for(i=0;i<16;i++)
@@ -802,7 +648,7 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 	    }
 	  else
 	    {
-	      Fmt(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
+	      sprintf(TempMessage,"%s<%s%d%s","FEE",FEE[i],"触发接收关闭...\n");
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }
 	}
@@ -812,21 +658,22 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
 	  MessagePopup("错误","发送USB配置命令失败！");
 	  return(-1);
 	}
-      Sleep(500);
+      sleep(500);
       GetData_Status=0;
-      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      //std::thread
+      //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1,OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
       sprintf(TempMessage,"完成%dmV信号源测试...\n",Volt);
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
       SetCtrlVal(mainHandle,Main_Acq_Status,0);
-      CloseFile(fp_write);
+      fclose(fp_write);
       if(Cmd2DAQ_SetFifo(instr)==-1)
 	{
 	  MessagePopup("错误","发送USB配置命令失败！");
 	  return(-1);
 	}
       SetCtrlVal(mainHandle,Main_Acq_Status,0);
-      CloseFile(fp_write);
-      SetCtrlAttribute(mainHandle,Main_Save_Path,ATTR_DIMMED,0);
+      fclose(fp_write);
+      /* SetCtrlAttribute(mainHandle,Main_Save_Path,ATTR_DIMMED,0); */
     }
   if(Cmd2DAQ_DisableTrig(instr)==-1)
     {
@@ -849,10 +696,11 @@ int CVICALLBACK SignalSweepAcq(void *functionData)
     SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭所有通道...\n");
   SetCtrlVal(mainHandle,Main_TEXTBOX,"完成信号源扫描测试...\n");
   SignalSweep_Status=0;
-  SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0);
+  /* SetCtrlAttribute(mainHandle,Main_Open_SaveFile,ATTR_DIMMED,0); */
   SetCtrlVal(signalsweepHandle, PANEL_Sig_ChnID,(ChnID+1));
   BeepFlag=1;
-  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE,BeepFunction, &mainHandle, &threadID7);
+  //std::thread
+  //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE,BeepFunction, &mainHandle, &threadID7);
   MessagePopup("完成","请手动切换到下一块芯片！！！");
   BeepFlag=0;
   return(0);
@@ -862,8 +710,8 @@ int CVICALLBACK BeepFunction(void *functionData)
 {
   while(BeepFlag==1)
     {
-      Beep();
-      Sleep(800);
+      /* Beep(); */
+      sleep(800);
     }
   return(0);
 }
@@ -872,7 +720,7 @@ ViUInt32 retCnt = 0, itemCnt = 0;
 
 void OpenSignal(ViSession devise)											    //打开信号源输出
 {
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   sprintf(TempMessage,"OUTPut2:STATe ON");
   status = viWrite(devise, (ViBuf)TempMessage, 17, &retCnt);
   if (status < VI_SUCCESS)
@@ -893,7 +741,7 @@ void OpenSignal(ViSession devise)											    //打开信号源输出
 
 void CloseSignal(ViSession devise)												//关闭信号源输出
 {
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   sprintf(TempMessage,"OUTPut1:STATe OFF");
   status = viWrite(devise, (ViBuf)TempMessage, 18, &retCnt);
   if (status < VI_SUCCESS)
@@ -954,7 +802,7 @@ int CVICALLBACK TestA(void *functionData)
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"测试线程\n"); 
 	}
       n++;
-      Sleep(100);
+      sleep(100);
 			
       //这里可以添加函数进行采集不到数据的操作
     }
