@@ -1,10 +1,14 @@
-#include <visa.h>
-#include <userint.h>
-#include "All.h"
+#include <ni-visa/visa.h>
+//#include <userint.h>
+/* #include "All.h" */
+
+
+#include <stdio.h>
+
 
 int SendUsbData(ViSession instr, unsigned char CommandWord[2])
 {
-  int n;
+  unsigned int n;
   unsigned char Temp_Command[2];						//待定
   Temp_Command[0]=CommandWord[1];				//待定
   Temp_Command[1]=CommandWord[0];				//待定
