@@ -18,11 +18,11 @@
 //==============================================================================
 
 // Include files
-#include <visa.h>
+#include <ni-visa/visa.h>
 #include <stdio.h>
-#include "cvidef.h"
+/* #include "cvidef.h" */
 #include "Main.h"
-#include "COM_Cmd_Status.h"
+/* #include "COM_Cmd_Status.h" */
 #include "SignalSweep.h"
 
 //==============================================================================
@@ -64,7 +64,8 @@
 #define NY_4 0x1f
 #define SUB_DAQ 0x30		
 																												   
-		
+
+
 		
 //==============================================================================
 // Types
@@ -74,7 +75,7 @@
 extern int USB_Status, GetData_Status, datasaveflag,COM_Status, Monitor_Status,COM_Cmd_Status,Cali_Status,Cali_Mode_Status,SignalSweep_Status,DAQTrig_Mode_Status,Hit_Status,TestA_Status;
 extern ViStatus status;
 extern ViSession defaultRM, instr;
-extern Error;
+/* extern Error; */
 extern int threadID1, threadID2, threadID3,threadID4,threadID5,threadID6,threadID7,threadID8,threadID9,threadID10,threadID11,threadID12,threadID13,threadID14,threadID15,threadID16;
 extern int Show_FEE_Status[16];
 extern int FEE[16],Hit[32];
@@ -82,15 +83,15 @@ extern int FEEID[17];
 extern char FEENAME[16][6];
 extern int mainHandle, Status1Handle, Status2Handle, Status3Handle, Status4Handle, Status5Handle, Status6Handle,Status7Handle,Status8Handle,comcmdHandle,signalsweepHandle,countHandle;
 extern char WrDataPath[300];
-extern int fp_write;
-extern int fp_TAConfig;
+extern FILE* fp_write;
+extern FILE* fp_TAConfig;
 extern int TrigDelay,Hit_Count;
-extern int fp_cmd_log;
-extern int fp_cmd_log_1, fp_cmd_log_2, fp_cmd_log_3, fp_cmd_log_4;
+extern FILE* fp_cmd_log;
+extern FILE* fp_cmd_log_1, fp_cmd_log_2, fp_cmd_log_3, fp_cmd_log_4;
 extern int Current_Remote[32],Temp_Remote[64];
 extern unsigned int Trig_Count;
 extern unsigned char Response[256]; // 20140320 Changqing Feng - 1V11   
-extern unsigned char IPAddress[100] ;
+extern char IPAddress[100] ;
 
 
 extern unsigned char 	Cali_DAC_Code_High[8];
@@ -161,8 +162,6 @@ int CVICALLBACK TestA(void *functionData);
 int CVICALLBACK Cali_For_DAQ(void *functionData);     
 int CVICALLBACK Acqing(void *functionData) ;
 
-//-----------------------------CmdViaNET--------------------------------------- 
-int SendNetData(unsigned int channel,char destAddr[21],unsigned char data[2]);  
 
 
 int Translation (double Charge, int *DAC, double Relationship[12][2]);

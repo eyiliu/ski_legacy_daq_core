@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include "All.h"
 int AcqPackCnt;
-int fp_TAConfig;
+FILE* fp_TAConfig;
 int BeepFlag=0;
 FILE *fp_temperature;
 FILE *fp_current;

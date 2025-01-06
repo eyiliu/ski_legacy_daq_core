@@ -1,3 +1,10 @@
+#include "fix.hh"
+#include "Main.h"
+#include "All.h"
+#include <unistd.h>
+#include <cstdint>
+#include <math.h>
+
 #include "Hv_Uir.h"
 #include "Mask_Channels.h"
 #include "Duty_Mode.h"
@@ -9,24 +16,22 @@
 #include "TAConfig.h"
 #include "MutiUSB.h"
 #include "SignalSweep.h"
-#include "COM_Cmd_Status.h"
-#include <windows.h>
-#include <udpsupp.h>
-#include <windows.h>
-#include <mmsystem.h>  //这个和上面一行是多媒体库，引用这两个库，然后用PlaySound函数播放wav格式
-#include <ansi_c.h>
-#include <formatio.h>
-#include <rs232.h>
-#include <utility.h>
-#include <cvirte.h>		
-#include <userint.h>
+/* #include "COM_Cmd_Status.h" */
+/* #include <windows.h> */
+/* #include <udpsupp.h> */
+/* #include <windows.h> */
+/* #include <mmsystem.h>  //这个和上面一行是多媒体库，引用这两个库，然后用PlaySound函数播放wav格式 */
+/* #include <ansi_c.h> */
+/* #include <formatio.h> */
+/* #include <rs232.h> */
+/* #include <utility.h> */
+/* #include <cvirte.h>		 */
+/* #include <userint.h> */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "TAConfig.h"
 #include "PX.h"
-#include "Main.h"
-#include "All.h"
 
 
 
@@ -60,26 +65,28 @@ int Show_FEE_Status[16]={0};
 int FEEID[17]={PX_1,PX_2,PX_3,PX_4,NX_1,NX_2,NX_3,NX_4,PY_1,PY_2,PY_3,PY_4,NY_1,NY_2,NY_3,NY_4,SUB_DAQ};
 char FEENAME[16][6]={"P_X_1","P_X_2","P_X_3","P_X_4","N_X_1","N_X_2","N_X_3","N_X_4","P_Y_1","P_Y_2","P_Y_3","P_Y_4","N_Y_1","N_Y_2","N_Y_3","N_Y_4"};
 int threadID1,threadID2,threadID3,threadID4,threadID5,threadID6,threadID7;
-int fp_write;
+FILE* fp_write;
 int Time_Length,Log_Length;
 unsigned int Trig_Count;
 int Current_Remote[32] = {0},Temp_Remote[64] ={0};
 int Hit_Count;
 double CurTime;
-char timemsg[20],text_log[300];
+char timemsg[20]="0000-00-00-00-00-00";
+char text_log[300];
 int TrigDelay=0x18;
-int fp_TAConfig;
-int fp_cmd_log,fp_text_log;																								  
+FILE* fp_TAConfig;
+FILE* fp_cmd_log;
+FILE* fp_text_log;																								  
 /////////////////////////////////////////////////////////
 //int fp_cmd_log_1,fp_cmd_log_2,fp_cmd_log_3,fp_cmd_log_4;
 /////////////////////////////////////////////////////////
-char WrDataPath[300]={"f:\\Zhangjunbin\\"};
+char WrDataPath[300]={"./"};
 int CRC_Array[16]={1};
 int ALLFEE;
 int HitAndArray[64] ={0};
 unsigned char CRC_Result[2];
 unsigned char CommandWord[2];
-unsigned char IPAddress[100] = {"USB0::0x0699::0x0345::C022722::INSTR"};
+char IPAddress[100] = {"USB0::0x0699::0x0345::C022722::INSTR"};
 unsigned int     writerChannel = 0; 
 int duty_i = 0;
 int Get_Mask_Ch_ID[64];
@@ -102,10 +109,10 @@ int CVICALLBACK Manual_USB_Cmd (int panel, int control, int event,			  //done
 				void *callbackData, int eventData1, int eventData2)
 {   
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData;
   int Add_Data;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -141,7 +148,7 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 				 void *callbackData, int eventData1, int eventData2)
 {
   FILE *fp_read;
-  char ConfigFile[300];
+  char ConfigFile[300]="ConfigFile";
   unsigned char TempBuffer[12];
   int flag=0;
   switch (event)
@@ -152,7 +159,7 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 	  MessagePopup("错误","未打开COM设备！");
 	  return(-1);
 	}
-      FileSelectPopup ("", "", "dat", "选择TA配置文件的路径", VAL_OK_BUTTON, 0, 0, 1, 0, ConfigFile);  
+      //FileSelectPopup ("", "", "dat", "选择TA配置文件的路径", VAL_OK_BUTTON, 0, 0, 1, 0, ConfigFile);  
       SetCtrlVal(mainHandle,Main_TA_ConfigFile,ConfigFile);
       if((fp_read=fopen(ConfigFile,"r"))==NULL)
 	{
@@ -163,8 +170,10 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 	{
 	  flag=1;
 	  Monitor_Status=0;
-	  if (threadID4)
-	    CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  if (threadID4){
+	    //std::thread
+	    //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  }
 	  SetCtrlVal(mainHandle, Main_TEXTBOX, "关闭遥测线程..\n");
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
 	}
@@ -177,7 +186,7 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 	      return(-1);
 	    }
 	  SendComData(1, TempBuffer);
-	  Sleep(15);
+	  sleep(15);
 	}
       SetCtrlVal(mainHandle,Main_TEXTBOX,"TA命令配置成功...\n");
       if(flag==1)
@@ -188,7 +197,8 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 	      Monitor_Status=0;
 	      return(-1);
 	    }
-	  CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启遥测线程...\n");
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,1);
 	  Monitor_Status=1;
@@ -201,18 +211,21 @@ int CVICALLBACK Open_ConfigFile (int panel, int control, int event,			 //done
 int CVICALLBACK Open_SaveFile (int panel, int control, int event,			 //done
 			       void *callbackData, int eventData1, int eventData2)
 {
-  char FILE_CMD_LOG[300],FILE_TEXT_BOX[300];
+  char FILE_CMD_LOG[300];
+  char FILE_TEXT_BOX[300];
 
 	
   switch (event)
     {
     case EVENT_COMMIT:
-      DirSelectPopup ("E:\\Work_File\\CEPC\\Data", "选择文件保存路径", 1, 1, WrDataPath);   //E:\Work_File\CEPC\Data
+      
+      //DirSelectPopup ("E:\\Work_File\\CEPC\\Data", "选择文件保存路径", 1, 1, WrDataPath);   //E:\Work_File\CEPC\Data
       datasaveflag=1;
       SetCtrlVal(mainHandle,Main_Save_Path,WrDataPath);
       sprintf(FILE_CMD_LOG, "%s//CMD_LOG.txt", WrDataPath);
       sprintf(FILE_TEXT_BOX,"%s\\TEXT_LOG.txt",WrDataPath);
-      fp_cmd_log = OpenFile(FILE_CMD_LOG, VAL_WRITE_ONLY, VAL_APPEND, VAL_ASCII  );
+      fp_cmd_log = fopen(FILE_CMD_LOG, "a");
+      
       break;
     }
   return 0;
@@ -222,7 +235,7 @@ int CVICALLBACK Set_Delay (int panel, int control, int event,			//done
 			   void *callbackData, int eventData1, int eventData2)
 {
   int i;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int TempID1,TempID2;
   int flag=0;
   switch (event)
@@ -237,19 +250,22 @@ int CVICALLBACK Set_Delay (int panel, int control, int event,			//done
 	{
 	  flag=1;
 	  Monitor_Status=0;
-	  if (threadID4)
-	    CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  if (threadID4){
+	    //std::thread
+	    //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  }
 	  //SetCtrlVal(mainHandle, Main_TEXTBOX, "关闭遥测线程..\n");
 				
-	  GetCurrentDateTime(&CurTime);
-	  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+	  //GetCurrentDateTime(&CurTime);
+	  //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
 	  Time_Length = strlen ( timemsg ) ;
-	  WriteFile(fp_text_log, timemsg, Time_Length ) ;
+	  //WriteFile(fp_text_log, timemsg, Time_Length ) ;
+	  fwrite(timemsg, Time_Length, 1, fp_text_log);
 	  sprintf(text_log,"关闭遥测线程..\n");
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,text_log);
 	  Log_Length = strlen(text_log);
-	  WriteFile(fp_text_log, text_log, Log_Length );
-				
+	  //WriteFile(fp_text_log, text_log, Log_Length );
+	  fwrite(text_log, Log_Length, 1, fp_text_log);
 			
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
 	}
@@ -274,7 +290,8 @@ int CVICALLBACK Set_Delay (int panel, int control, int event,			//done
 	      Monitor_Status=0;
 	      return(-1);
 	    }
-	  CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启遥测线程...\n");
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,1);
 	  Monitor_Status=1;
@@ -308,16 +325,17 @@ int CVICALLBACK Stop_Monitor (int panel, int control, int event,		  //done
 	  if (threadID4)
 	    {
 	      Monitor_Status=0;
-	      CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	      //std::thread
+	      //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
 	    }
 	  SetCtrlVal(mainHandle, Main_TEXTBOX, "关闭遥测线程..\n");
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
 	  Monitor_Status=0;
 	}
       GetPanelHandleFromTabPage(mainHandle,Main_WorkMode,0,&normalHandle);
-      SetCtrlAttribute(normalHandle,Normal_Stop_Norm_Acq,ATTR_DIMMED,0); 
-      SetCtrlAttribute(mainHandle,Main_Stop_Monitor,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_Start_Monitor,ATTR_DIMMED,0);
+      /* SetCtrlAttribute(normalHandle,Normal_Stop_Norm_Acq,ATTR_DIMMED,0);  */
+      /* SetCtrlAttribute(mainHandle,Main_Stop_Monitor,ATTR_DIMMED,1); */
+      /* SetCtrlAttribute(mainHandle,Main_Start_Monitor,ATTR_DIMMED,0); */
       break;
     }
   return 0;
@@ -347,13 +365,14 @@ int CVICALLBACK Start_Monitor (int panel, int control, int event,		   //done
 	  return(-1);
 	}
       Monitor_Status=1;
-      CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
+      //std::thread
+      //CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, MonitorFunction, &panel, &threadID4);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"开启遥测线程...\n");
       SetCtrlVal(mainHandle,Main_Monitor_Status,1);
       GetPanelHandleFromTabPage(mainHandle,Main_WorkMode,0,&normalHandle);
-      SetCtrlAttribute(normalHandle,Normal_Stop_Norm_Acq,ATTR_DIMMED,1); 
-      SetCtrlAttribute(mainHandle,Main_Stop_Monitor,ATTR_DIMMED,0);
-      SetCtrlAttribute(mainHandle,Main_Start_Monitor,ATTR_DIMMED,1);
+      /* SetCtrlAttribute(normalHandle,Normal_Stop_Norm_Acq,ATTR_DIMMED,1);  */
+      /* SetCtrlAttribute(mainHandle,Main_Stop_Monitor,ATTR_DIMMED,0); */
+      /* SetCtrlAttribute(mainHandle,Main_Start_Monitor,ATTR_DIMMED,1); */
       break;
     }
   return 0;
@@ -364,7 +383,7 @@ int CVICALLBACK Connect_Com (int panel, int control, int event,			  //done
 {
   int i;
   int  normalHandle;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   switch (event)
     {
     case EVENT_COMMIT:
@@ -384,7 +403,8 @@ int CVICALLBACK Connect_Com (int panel, int control, int event,			  //done
       COM_Status=1;
       SetCtrlVal(mainHandle,Main_TEXTBOX,"COM设备已连接...\n");
       FlushOutQ(1);
-      CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, COMStatus, &panel, &threadID3);
+      //std::thread
+      //CmtScheduleThreadPoolFunction(DEFAULT_THREAD_POOL_HANDLE, COMStatus, &panel, &threadID3);
       for(i=0;i<16;i++)
 	{	
 	  if(FEE[i]==0)
@@ -399,7 +419,7 @@ int CVICALLBACK Connect_Com (int panel, int control, int event,			  //done
 	    }
 	  else
 	    {
-	      Fmt(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"回环测试...\n");
+	      sprintf(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"回环测试...\n");
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }
 	  /*	if ( (ResetFPGA(1,FEEID[i]))==-1)
@@ -419,7 +439,7 @@ int CVICALLBACK Connect_Com (int panel, int control, int event,			  //done
 	    }
 	  else
 	    {
-	      Fmt(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"触发计数清零...\n");
+	      sprintf(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"触发计数清零...\n");
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }
 	  if ( (ConfigReg(1,FEEID[i],0,0,0,0,0,0))==-1)
@@ -429,13 +449,13 @@ int CVICALLBACK Connect_Com (int panel, int control, int event,			  //done
 	    }
 	  else
 	    {
-	      Fmt(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"触发接收关闭...\n");
+	      sprintf(TempMessage,"%s<%s%s%s","FEE",FEENAME[i],"触发接收关闭...\n");
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }  
 	}
       Set_Current_Thr();
       GetPanelHandleFromTabPage(mainHandle,Main_WorkMode,0,&normalHandle);
-      SetCtrlAttribute(normalHandle,Normal_Start_Norm_Acq,ATTR_DIMMED,0); 
+      /* SetCtrlAttribute(normalHandle,Normal_Start_Norm_Acq,ATTR_DIMMED,0);  */
       break;
     }
   return 0;
@@ -446,9 +466,9 @@ int CVICALLBACK Connect_USB (int panel, int control, int event,			   //done
 {
   int n;
   int i;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TmpData[512];
-  unsigned char desc[256];
+  char desc[256];
   unsigned char CommandWord[2];
   switch (event)
     {
@@ -488,101 +508,8 @@ int CVICALLBACK Connect_USB (int panel, int control, int event,			   //done
 	}
       SetCtrlVal(mainHandle,Main_USB_Status,1);
 			
-      /*	GetCurrentDateTime(&CurTime);
-		FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
-		Time_Length = strlen ( timemsg ) ;
-		WriteFile(fp_text_log, timemsg, Time_Length ) ;	   */
       SetCtrlVal(mainHandle,Main_TEXTBOX,"USB设备已连接...\n"); 
       sprintf(text_log,"USB设备已连接...\n");
-      /*	Log_Length = strlen(text_log);
-		WriteFile(fp_text_log, text_log, Log_Length );		*/
-				
-		
-			
-      /*	USB_Status=1;
-			
-		if(Cmd2DAQ_Reset(instr)==-1)
-		{
-		MessagePopup ("错误", "哈哈哈，玩死你！请用热风机加热USB芯片，或者两个电源一起开（手速要快）！");
-		return -1;
-		}
-		else
-		{
-		GetCurrentDateTime(&CurTime);
-		FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
-		Time_Length = strlen ( timemsg ) ;
-		WriteFile(fp_text_log, timemsg, Time_Length ) ;
-		sprintf(text_log,"Sub_DAQ系统复位...\n");
-		SetCtrlVal(mainHandle,Main_TEXTBOX,text_log);
-		Log_Length = strlen(text_log);
-		WriteFile(fp_text_log, text_log, Log_Length );
-				
-		}
-		//	SetCtrlVal(mainHandle,Main_TEXTBOX,"Sub_DAQ系统复位...\n");   
-			     
-		CommandWord[0] = 0x03;
-		CommandWord[1] = 0x3f;
-		if(SendUsbData(instr,CommandWord)==-1)
-		{
-		MessagePopup ("错误", "发送USB配置命令失败！！2");
-		return -1;
-		}
-		else
-		SetCtrlVal(mainHandle,Main_TEXTBOX,"所有通道选择为主份...\n");
-		for(i=0;i<16;i++)
-		{
-		if(FEE[i]==0)
-		continue;
-		if(Cmd2DAQ_FEESet(instr,i,FEEID[i])==-1)
-		{
-		MessagePopup("错误","发送USB配置命令失败！3");
-		return(-1);
-		}
-		else
-		{
-		sprintf(TempMessage,"FEE%d挂载为FEE %s\n",i+1,FEENAME[i]);
-		SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-		}
-		} 
-		CommandWord[0] = 0x02;
-		CommandWord[1] = 0x2f;
-		if(SendUsbData(instr,CommandWord)==-1)
-		{
-		MessagePopup ("错误", "发送USB配置命令失败！！2");
-		return -1;
-		}
-		else
-		SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭所有通道...\n"); 
-		CommandWord[0] = 0x0a;
-		CommandWord[1] = 0xaf;
-		if(SendUsbData(instr,CommandWord)==-1)
-		{
-		MessagePopup ("错误", "发送USB配置命令失败！！2");
-		return -1;
-		}
-		else
-		SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭所有命令返回通道...\n");
-		for(i=0;i<16;i++)
-		{
-		if(FEE[i]==0)
-		continue;
-		if((Cmd2DAQ_EnableFEECmdChn(instr,i))==-1)
-		{
-		MessagePopup("错误","发送USB配置命令失败！6i");
-		return(-1);
-		}
-		else
-		{
-		sprintf(TempMessage,"FEE %s命令返回通道打开...\n",FEENAME[i]);
-		SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-		}
-		}		  */
-      /*	viRead(instr,TmpData,512,&n);
-		Sleep(10);
-		viRead(instr,TmpData,512,&n);
-		Sleep(10);
-		SetCtrlVal(mainHandle,Main_TEXTBOX,"清空Buffer...\n");	   */
-      //	CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, USBStatus, &panel, &threadID2);
       break;
     }
   return 0;
@@ -593,7 +520,7 @@ int CVICALLBACK Sys_Reset (int panel, int control, int event,			   //done
 {
   int i;
   int flag=0;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char CommandWord[2];
   switch (event)
     {
@@ -652,15 +579,15 @@ int CVICALLBACK Data_Mode (int panel, int control, int event,				 //done
       GetCtrlVal(normalHandle,Normal_Data_Mode,&Data_Mode_Status);
       if(Data_Mode_Status==1)
 	{
-	  SetCtrlAttribute(normalHandle,Normal_Threshold_ChnID,ATTR_DIMMED,1);
-	  SetCtrlAttribute(normalHandle,Normal_High_Threshold,ATTR_DIMMED,1);
-	  SetCtrlAttribute(normalHandle,Normal_Low_Threshold,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(normalHandle,Normal_Threshold_ChnID,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(normalHandle,Normal_High_Threshold,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(normalHandle,Normal_Low_Threshold,ATTR_DIMMED,1);
 	}
       else
 	{
-	  SetCtrlAttribute(normalHandle,Normal_Threshold_ChnID,ATTR_DIMMED,0);
-	  SetCtrlAttribute(normalHandle,Normal_High_Threshold,ATTR_DIMMED,0);
-	  SetCtrlAttribute(normalHandle,Normal_Low_Threshold,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(normalHandle,Normal_Threshold_ChnID,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(normalHandle,Normal_High_Threshold,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(normalHandle,Normal_Low_Threshold,ATTR_DIMMED,0);
 	}
       break;
     }
@@ -678,17 +605,17 @@ int CVICALLBACK Cali_Mode (int panel, int control, int event,				 //done
       GetCtrlVal(caliHandle,Calitest_Cali_Mode,&Cali_Mode_Status);
       if(Cali_Mode_Status==0)
 	{
-	  SetCtrlAttribute(caliHandle,Calitest_Volt,ATTR_DIMMED,0);
-	  SetCtrlAttribute(caliHandle,Calitest_S_Volt,ATTR_DIMMED,1);
-	  SetCtrlAttribute(caliHandle,Calitest_E_Volt,ATTR_DIMMED,1);
-	  SetCtrlAttribute(caliHandle,Calitest_Step,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(caliHandle,Calitest_Volt,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(caliHandle,Calitest_S_Volt,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(caliHandle,Calitest_E_Volt,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(caliHandle,Calitest_Step,ATTR_DIMMED,1);
 	}
       else
 	{
-	  SetCtrlAttribute(caliHandle,Calitest_Volt,ATTR_DIMMED,1);
-	  SetCtrlAttribute(caliHandle,Calitest_S_Volt,ATTR_DIMMED,0);
-	  SetCtrlAttribute(caliHandle,Calitest_E_Volt,ATTR_DIMMED,0);
-	  SetCtrlAttribute(caliHandle,Calitest_Step,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(caliHandle,Calitest_Volt,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(caliHandle,Calitest_S_Volt,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(caliHandle,Calitest_E_Volt,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(caliHandle,Calitest_Step,ATTR_DIMMED,0);
 	}
       break;
     }
@@ -708,17 +635,25 @@ int CVICALLBACK MainFunc (int panel, int event, void *callbackData,			  //done
       break;
     case EVENT_CLOSE:
       GetData_Status=0;
-      if (threadID1)
-	CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      if (threadID1){
+	//std::thread
+	//CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID1 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      }
       USB_Status=0;
-      if (threadID2)
-	CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID2 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      if (threadID2){
+	//std::thread
+	//CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID2 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      }
       COM_Status=0;
-      if (threadID3)
-	CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID3 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      if (threadID3){
+	//std::thread
+	//CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID3 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      }
       Monitor_Status=0;
-      if (threadID4)
-	CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      if (threadID4){
+	//std::thread
+	//CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+      }
       status = viClose(instr);
       status = viClose(defaultRM);
       Error=CloseCom(1);
@@ -890,15 +825,15 @@ int CVICALLBACK Start_Norm_Acq (int panel, int control, int event,	  //done
 				void *callbackData, int eventData1, int eventData2)
 {
   char WrDataFile[300];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[512];
   unsigned char CommandBuffer[2];
-  char timemsg[20];
+  char timemsg[20]="0000-00-00-00-00-00";
   double CurTime;
   int Mode,DataMode,WorkMode,Trig;
   int InternalTime;
   int i,j;
-  int n;
+  unsigned int n;
   int mode1;
   int Chn_ID;
   int normalHandle;
@@ -917,11 +852,11 @@ int CVICALLBACK Start_Norm_Acq (int panel, int control, int event,	  //done
 	  return -1;
 	}
 
-      GetCurrentDateTime(&CurTime);
-      FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+      /* GetCurrentDateTime(&CurTime); */
+      /* FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20); */
       sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);
-      fp_write=OpenFile (WrDataFile, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-      if(fp_write==-1)
+      fp_write=fopen(WrDataFile, "wb");
+      if(fp_write==NULL)
 	{
 	  MessagePopup ("错误", "新建数据保存文件失败！");
 	  return -1;
@@ -1031,9 +966,9 @@ int CVICALLBACK Start_Norm_Acq (int panel, int control, int event,	  //done
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启触发\n");
 	}
       status=viRead(instr,TempBuffer,512,&n);
-      Sleep(15);
+      sleep(15);
       //	status=viRead(instr,TempBuffer,512,&n);
-      //	Sleep(15);
+      //	sleep(15);
 			
 		
 		
@@ -1041,9 +976,11 @@ int CVICALLBACK Start_Norm_Acq (int panel, int control, int event,	  //done
       GetData_Status=1; 
       SetCtrlVal(mainHandle,Main_TEXTBOX,"开始数据采集...\n");
       SetCtrlVal(mainHandle,Main_Acq_Status,1);
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
-      SetCtrlVal(mainHandle,Main_TEXTBOX,"开启监测...\n");  
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
+      //std::thread
+      //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
+      SetCtrlVal(mainHandle,Main_TEXTBOX,"开启监测...\n");
+      //std::thread
+      //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"开启数据采集线程...\n");
 
       break;
@@ -1054,7 +991,7 @@ int CVICALLBACK Start_Norm_Acq (int panel, int control, int event,	  //done
 int CVICALLBACK Stop_Norm_Acq (int panel, int control, int event,	  //done
 			       void *callbackData, int eventData1, int eventData2)
 {
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char CommandBuffer[2];
   int normalHandle;
   int i;
@@ -1076,13 +1013,13 @@ int CVICALLBACK Stop_Norm_Acq (int panel, int control, int event,	  //done
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"关闭触发\n");
 	}
       GetData_Status=0;
-      Sleep(100); 
+      sleep(100); 
       SetCtrlVal(mainHandle,Main_Acq_Status,0);
       SetCtrlVal(mainHandle,Main_TEXTBOX,"结束采集命令发出...\n");
 	
-      CloseFile(fp_write);
+      fclose(fp_write);
 	
-      Beep();																	
+      //Beep();																	
       GetPanelHandleFromTabPage(mainHandle,Main_WorkMode,0,&normalHandle);
 	
       break;
@@ -1095,14 +1032,14 @@ int CVICALLBACK Start_Cali_Acq (int panel, int control, int event,	  //done
 {
   int i;
   int InternalTime;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int Mode;
   int flag=0;
   switch (event)
     {
     case EVENT_COMMIT:
-
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, CaliAcq, &mainHandle, &threadID5);
+      //std::thread
+      //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, CaliAcq, &mainHandle, &threadID5);
       Cali_Status=1;
       break;
     }
@@ -1160,7 +1097,7 @@ int CVICALLBACK Manual_COM_Cmd (int panel, int control, int event,			//done
   int comHandle;
   unsigned char TempBuffer[12];
   unsigned char CheckBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   switch (event)
     {
     case EVENT_COMMIT:
@@ -1173,8 +1110,10 @@ int CVICALLBACK Manual_COM_Cmd (int panel, int control, int event,			//done
       if(Monitor_Status==1)
 	{
 	  Monitor_Status=0;
-	  if (threadID4)
-	    CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  if (threadID4){
+	    //std::thread
+	    //CmtWaitForThreadPoolFunctionCompletion (DEFAULT_THREAD_POOL_HANDLE,threadID4 , OPT_TP_PROCESS_EVENTS_WHILE_WAITING);
+	  }
 	  SetCtrlVal(mainHandle, Main_TEXTBOX, "关闭遥测线程...\n");
 	  SetCtrlVal(mainHandle,Main_Monitor_Status,0);
 	  MessagePopup("注意","遥测线程已关闭！");
@@ -1212,7 +1151,7 @@ int CVICALLBACK Manual_COM_Cmd (int panel, int control, int event,			//done
 	{
 	  for(i = 0;i<16; i ++)
 	    {
-	      Sleep(100);
+	      sleep(100);
 	      TempBuffer[4]=FEEID[i];
 	      CheckTemp=FEEID[i];
 	      GetCtrlVal(comHandle,COM_Cmd_Manual_COM_Type,&TempData);
@@ -1232,7 +1171,7 @@ int CVICALLBACK Manual_COM_Cmd (int panel, int control, int event,			//done
 		  MessagePopup("错误","发送COM配置命令失败！");
 		  return(-1);
 		}
-	      Sleep(100);
+	      sleep(100);
 	      if(ReadComCmdResp(1)<0)
 		return(-1);
 	      sprintf(TempMessage,"Write 0x%02x%02x 0x%02x%02x Command via COM\n",TempBuffer[4],TempBuffer[5],TempBuffer[6],TempBuffer[7]);
@@ -1249,7 +1188,7 @@ int CVICALLBACK Manual_COM_Cmd (int panel, int control, int event,			//done
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);
+      sleep(100);
       if(ReadComCmdResp(1)<0)
 	return(-1);
       sprintf(TempMessage,"Write 0x%02x%02x 0x%02x%02x Command via COM\n",TempBuffer[4],TempBuffer[5],TempBuffer[6],TempBuffer[7]);
@@ -1272,41 +1211,40 @@ int CVICALLBACK DAQ_Trig_Mode (int panel, int control, int event,			//done
     {
     case EVENT_COMMIT:
       GetCtrlVal(mainHandle,Main_DAQTrigMode,&DAQTrig_Mode_Status);
-      if(DAQTrig_Mode_Status==1)
-	SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,0);
-      SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,1);
+      if(DAQTrig_Mode_Status==1){
+	//SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,0);
+      }
+      //SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,1);
+      //SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,1);
+      //SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,1);
       SetCtrlVal(mainHandle,Main_HitEnable,1);
-      SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,1);
-      //	Hit_Status = 0;
-      if(DAQTrig_Mode_Status==2)
-	SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,1);
-      SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,1);
+      //SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,1);
+      if(DAQTrig_Mode_Status==2){
+	//SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
+      }
+      //SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,1);
+      //SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,1);
+      //SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,1);
       SetCtrlVal(mainHandle,Main_HitEnable,1);
-      SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,1);
-      //	Hit_Status = 0;
+      //SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,1);
       if(DAQTrig_Mode_Status==3)
 	{
-	  SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
 	  SetCtrlVal(mainHandle,Main_HitEnable,0); 
-	  SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,0);//0:ON  1:OFF
-	  //	Hit_Status = 1;
+	  //SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,0);//0:ON  1:OFF
+	  
 	}
       if(DAQTrig_Mode_Status==4)
 	{
-	  SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,0);
-	  SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
+	  //SetCtrlAttribute(mainHandle,Main_HitEnable,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_HitChoose,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_ClassicsHitMode,ATTR_DIMMED,0);
+	  //SetCtrlAttribute(mainHandle,Main_CaliInternal,ATTR_DIMMED,1);
 	  SetCtrlVal(mainHandle,Main_HitEnable,0); 
-	  SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,0);//0:ON  1:OFF
-	  //	Hit_Status = 1;
+	  //SetCtrlAttribute(mainHandle,Main_More_Hit_Mode,ATTR_DIMMED,0);//0:ON  1:OFF
 	}
 			
       break;
@@ -1338,7 +1276,7 @@ int CVICALLBACK SignalSweepStart (int panel, int control, int event,		 //done
 {
   int i;
   int InternalTime;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int Mode;
   switch (event)
     {
@@ -1388,7 +1326,8 @@ int CVICALLBACK SignalSweepStart (int panel, int control, int event,		 //done
 	  sprintf(TempMessage,"设置FEE %s的触发延迟值为%d...\n",FEENAME[i],TrigDelay);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	}
-      CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, SignalSweepAcq, &mainHandle, &threadID6);
+      //std::thread
+      //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, SignalSweepAcq, &mainHandle, &threadID6);
       SignalSweep_Status=1;
       break;
     }
@@ -1434,9 +1373,9 @@ int CVICALLBACK CloseMutiUSB (int panel, int event, void *callbackData,		    //d
 int CVICALLBACK wtUSB1 (int panel, int control, int event,				    //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1467,9 +1406,9 @@ int CVICALLBACK wtUSB1 (int panel, int control, int event,				    //done
 int CVICALLBACK wtUSB2 (int panel, int control, int event,					   //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1500,9 +1439,9 @@ int CVICALLBACK wtUSB2 (int panel, int control, int event,					   //done
 int CVICALLBACK wtUSB3 (int panel, int control, int event,					  //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1533,9 +1472,9 @@ int CVICALLBACK wtUSB3 (int panel, int control, int event,					  //done
 int CVICALLBACK wtUSB4 (int panel, int control, int event,					 //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1566,9 +1505,9 @@ int CVICALLBACK wtUSB4 (int panel, int control, int event,					 //done
 int CVICALLBACK wtUSB5 (int panel, int control, int event,					   //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1599,9 +1538,9 @@ int CVICALLBACK wtUSB5 (int panel, int control, int event,					   //done
 int CVICALLBACK wtUSB6 (int panel, int control, int event,					   //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1632,9 +1571,9 @@ int CVICALLBACK wtUSB6 (int panel, int control, int event,					   //done
 int CVICALLBACK wtUSB8 (int panel, int control, int event,					   //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1665,9 +1604,9 @@ int CVICALLBACK wtUSB8 (int panel, int control, int event,					   //done
 int CVICALLBACK wtUSB9 (int panel, int control, int event,						 //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1698,9 +1637,9 @@ int CVICALLBACK wtUSB9 (int panel, int control, int event,						 //done
 int CVICALLBACK wtUSB10 (int panel, int control, int event,					    //done   
 			 void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1731,9 +1670,9 @@ int CVICALLBACK wtUSB10 (int panel, int control, int event,					    //done
 int CVICALLBACK wtUSB7 (int panel, int control, int event,					    //done   
 			void *callbackData, int eventData1, int eventData2)
 {
-  int n;
+  unsigned int n;
   int ConfigData;
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   unsigned char TempBuffer[2];
   switch (event)
     {
@@ -1805,7 +1744,7 @@ int CVICALLBACK SetTAConfig (int panel, int control, int event,		  //done
 {
   struct Config
   {
-    unsigned __int64 data;
+    uint64_t data; //64bit
     int p0;
   };
   struct Config ConfigArray[36];
@@ -1819,11 +1758,11 @@ int CVICALLBACK SetTAConfig (int panel, int control, int event,		  //done
   int Address;
   unsigned char CommandBuffer[2];
   char FileName[300];
-  char timemsg[20];
+  char timemsg[20]="0000-00-00-00-00-00";
   char TempMesg[300];
   double CurTime;
   int TempData;
-  unsigned __int64 TempData_1;
+  uint64_t TempData_1;
   int flag=0;
   switch (event)
     {
@@ -1844,7 +1783,7 @@ int CVICALLBACK SetTAConfig (int panel, int control, int event,		  //done
 	  //	printf("Command[1] = %02x, Command[0] = %02x\n",CommandBuffer[1],CommandBuffer[0]);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMesg);
 	}
-      Sleep(300);
+      sleep(300);
       CommandBuffer[1]  = 0x00;
       CommandBuffer[0]  = 0xb1;
       if(SendUsbData(instr, CommandBuffer) ==-1)
@@ -1984,7 +1923,7 @@ int CVICALLBACK Set_HighThr (int panel, int control, int event,				//Modified by
 	}	   
       break;
     }
-  Beep();
+  //Beep();
   return 0;
 }
 
@@ -2035,10 +1974,10 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
 {
   char WrDataFile[300];
-  char timemsg[20];
-  unsigned char TempMessage[100];
+  char timemsg[20]="0000-00-00-00-00-00";
+  char TempMessage[100];
   double CurTime;
-  int ta_fp;
+  FILE* ta_fp;
   int Channel ;
   int Hit_Num1 ;
   int Hit_Num2 ;
@@ -2077,18 +2016,19 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 	  MessagePopup ("错误", "未打开COM设备！");
 	  return -1;
 	}
-      GetCurrentDateTime(&CurTime);
-      FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+      //GetCurrentDateTime(&CurTime);
+      //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
       sprintf(WrDataFile,"%s\\%sTA Test.csv",WrDataPath,timemsg);
-      ta_fp = OpenFile (WrDataFile, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-      if(ta_fp == -1)
+      ta_fp = fopen(WrDataFile, "wb");
+      if(ta_fp == NULL)
 	{
 	  MessagePopup ("error", "fail to create file");
 	  return -1;
 	}
       sprintf(TempMessage,"Channel,HitCount1,HitCount2\n") ;
       Length = strlen (TempMessage);
-      WriteFile(ta_fp,TempMessage,Length);
+      //WriteFile(ta_fp,TempMessage,Length);
+      fwrite(TempMessage, Length, 1, ta_fp);
       Cmd2DAQ_ChooseTrigMode(instr, 4);
       Cmd2DAQ_StartAcq(instr);
       Cmd2DAQ_EnableTrig(instr);
@@ -2127,7 +2067,7 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"Choose FEE 0x%2x Channel %d\n",FEEID[j], Channel);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		}
-	      Sleep(10) ;
+	      sleep(10) ;
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
@@ -2144,7 +2084,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"FEE %2x,Top5,Channel %d,",FEEID[j], Channel-64);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2157,7 +2098,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"FEE %2x,Btm5,Channel %d,",FEEID[j], Channel-96);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2170,7 +2112,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"FEE %2x,Top8,Channel %d,",FEEID[j], Channel-128);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2183,10 +2126,11 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"FEE %2x,Btm8,Channel %d,",FEEID[j], Channel-160);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 	      Trigger_Gen(SignalSource) ;
-	      Sleep(1800);
+	      sleep(1800);
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
@@ -2203,7 +2147,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2216,7 +2161,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,",Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2229,7 +2175,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2242,7 +2189,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 	      /////////////////////////////////////////////////    modified by siyuan 2015 1 13
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
@@ -2258,10 +2206,6 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[26] ;
 		  else
 		    Hit_Num1 = Response[27] ;
-		  /*	  	sprintf(TempMessage,"Channel %d,", Channel-64);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				Length = strlen(TempMessage);
-				WriteFile(ta_fp, TempMessage, Length);			*/
 		}
 				  
 				  
@@ -2271,10 +2215,6 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[29] ;
 		  else
 		    Hit_Num1 = Response[30] ;
-		  /*	  	sprintf(TempMessage,"FEE %2x,Btm5,Channel %d,",FEEID[j], Channel-96);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				Length = strlen(TempMessage);
-				WriteFile(ta_fp, TempMessage, Length);			 */
 		}
 				  
 				  
@@ -2284,10 +2224,6 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[32] ;
 		  else
 		    Hit_Num1 = Response[33] ;
-		  /*	  	sprintf(TempMessage,"FEE %2x,Top8,Channel %d,",FEEID[j], Channel-128);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				Length = strlen(TempMessage);
-				WriteFile(ta_fp, TempMessage, Length);		*/
 		}
 				  
 				  
@@ -2297,13 +2233,9 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[35] ;
 		  else
 		    Hit_Num1 = Response[36] ;
-		  /*	  	sprintf(TempMessage,"FEE %2x,Btm8,Channel %d,",FEEID[j], Channel-160);
-				SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
-				Length = strlen(TempMessage);
-				WriteFile(ta_fp, TempMessage, Length);			  */
 		}
 	      Trigger_Gen(SignalSource) ;
-	      Sleep(1800);
+	      sleep(1800);
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
@@ -2320,7 +2252,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2333,7 +2266,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,",Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2346,7 +2280,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2359,7 +2294,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 	      /////////////////////////////////////////////////
 				  
@@ -2368,13 +2304,13 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 						  MessagePopup("错误","发送COM配置命令失败！");
 						  return(-1);
 						  }		
-						  Sleep(3000);	   */
+						  sleep(3000);	   */
 	      if((TA_Self_Test(1,FEEID[j],Channel))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
 		  return(-1);
 		}
-	      Sleep(10) ;
+	      sleep(10) ;
 				  
 	      for ( i = 0; i <4 ; i++ )
 		TA_Thr(1, FEEID[j], i, 0xb00);
@@ -2422,7 +2358,7 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[36] ;
 		}
 	      Trigger_Gen(SignalSource) ;
-	      Sleep(1800);
+	      sleep(1800);
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
@@ -2438,7 +2374,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2451,7 +2388,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,",Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2464,7 +2402,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2477,7 +2416,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d,", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
+		  //WriteFile(ta_fp, TempMessage, Length);
 		}
 	      //////////////////////////////////////////////////   modified by siyuan
 	      if((TA_Self_Test(1,FEEID[j],Channel))==-1)
@@ -2485,7 +2425,7 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  MessagePopup("错误","发送COM配置命令失败！");
 		  return(-1);
 		}
-	      Sleep(10) ;
+	      sleep(10) ;
 				  
 	      for ( i = 0; i <4 ; i++ )
 		TA_Thr(1, FEEID[j], i, 0xb00);
@@ -2533,7 +2473,7 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		    Hit_Num1 = Response[36] ;
 		}
 	      Trigger_Gen(SignalSource) ;
-	      Sleep(1800);
+	      sleep(1800);
 	      if((CheckFPGALogic(1,FEEID[j]))==-1)
 		{
 		  MessagePopup("错误","发送COM配置命令失败！");
@@ -2549,7 +2489,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d\n", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  //WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
 		}
 				  
 				  
@@ -2562,7 +2503,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d\n",Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
+		  //WriteFile(ta_fp, TempMessage, Length);
 		}
 				  
 				  
@@ -2575,7 +2517,8 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d\n", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
+		  //WriteFile(ta_fp, TempMessage, Length);
 		}
 				  
 				  
@@ -2588,12 +2531,13 @@ int CVICALLBACK TA_Test_Func (int panel, int control, int event,
 		  sprintf(TempMessage,"%d\n", Hit_Num2-Hit_Num1);
 		  SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 		  Length = strlen(TempMessage);
-		  WriteFile(ta_fp, TempMessage, Length);
+		  fwrite(TempMessage, Length, 1, ta_fp);
+		  
 		}
 	      //////////////////////////////////////////////////
 	    }
 	}
-      CloseFile(ta_fp);
+      fclose(ta_fp);
       MessagePopup("","finish TA test");
       break;
     }
@@ -2606,10 +2550,10 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 {
   struct Config
   {
-    unsigned __int64 data;
+    uint64_t data;
     int p0;
   };
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int Hit_Num1  ;
   int Hit_Num2 ;
   int Hit_Num3 ;
@@ -2626,13 +2570,13 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
   int Address;
   int TA_NUM;
   char FileName[300];
-  char timemsg[20];
+  char timemsg[20]="0000-00-00-00-00-00";
   double CurTime;
-  unsigned __int64 TempData;
+  uint64_t TempData;
   char WrDataFile[300];
   int Chn;
   int ChnNum=0;
-  int hit_fp;
+  FILE* hit_fp;
   void Trigger_Gen(ViSession devise);
   switch (event)
     {
@@ -2664,19 +2608,19 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	  MessagePopup ("错误", "未打开COM设备！");
 	  return -1;
 	}
-      GetCurrentDateTime(&CurTime);
-      FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+      //GetCurrentDateTime(&CurTime);
+      //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
       sprintf(WrDataFile,"%s\\%sHit Test.csv",WrDataPath,timemsg);
-      hit_fp = OpenFile (WrDataFile, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-      if(hit_fp == -1)
+      hit_fp = fopen (WrDataFile, "wb");
+      if(hit_fp == NULL)
 	{
 	  MessagePopup ("error", "fail to create file");
 	  return -1;
 	}
       sprintf(TempMessage,"Channel,HitCount_Top,HitCount_Bom\n") ;
       Length = strlen (TempMessage);
-      WriteFile(hit_fp,TempMessage,Length);
-
+      //WriteFile(hit_fp,TempMessage,Length);
+      fwrite(TempMessage, Length, 1, hit_fp);
       ConfigArray[0].data=0;
       ConfigArray[0].p0=32;
 			
@@ -2770,7 +2714,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      if ( FEE[i] == 0 )
 		continue ;
 	      TA_load(1, FEEID[i] ) ;
-	      Sleep(1000);
+	      sleep(1000);
 	    }
         
 	  if((ResetFPGA(1,FEEID[0]))==-1)
@@ -2784,7 +2728,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	    }
 				
-	  Sleep(3000);
+	  sleep(3000);
 		
 	  for( i = 0; i < 4; i++)
 	    {
@@ -2821,7 +2765,8 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"Dy5 Channel %d,", ChnNum);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
+	      fwrite(TempMessage, Length, 1, hit_fp);
 	    }
 				
 				
@@ -2840,11 +2785,12 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"Dy8 Channel %d,", ChnNum);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
+	      fwrite(TempMessage, Length, 1, hit_fp);
 	    }
 
 	  Trigger_Gen(SignalSource) ;
-	  Sleep(1800);
+	  sleep(1800);
 	  if((CheckFPGALogic(1,FEEID[0]))==-1)
 	    {
 	      MessagePopup("错误","发送COM配置命令失败！");
@@ -2867,7 +2813,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"%d,%d ,", Hit_Num2-Hit_Num1,Hit_Num4-Hit_Num3);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
 	    }
 				
 				
@@ -2886,7 +2832,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"%d,%d  ", Hit_Num2-Hit_Num1,Hit_Num4-Hit_Num3);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
 	    }
 				
 	  //////////////////////////////////////////////////////
@@ -2935,7 +2881,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	    }
 
 	  Trigger_Gen(SignalSource) ;
-	  Sleep(1800);
+	  sleep(1800);
 	  if((CheckFPGALogic(1,FEEID[0]))==-1)
 	    {
 	      MessagePopup("错误","发送COM配置命令失败！");
@@ -2958,7 +2904,7 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"%d,%d\n", Hit_Num2-Hit_Num1,Hit_Num4-Hit_Num3);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
 	    }
 				
 				
@@ -2977,12 +2923,12 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 	      sprintf(TempMessage,"%d,%d\n", Hit_Num2-Hit_Num1,Hit_Num4-Hit_Num3);
 	      SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);
 	      Length = strlen(TempMessage);
-	      WriteFile(hit_fp, TempMessage, Length);
+	      //WriteFile(hit_fp, TempMessage, Length);
 	    }
 				
 	  /////////////////////////////////////////////////////
 	}
-      CloseFile(hit_fp); 
+      fclose(hit_fp); 
       break;
     }
   return 0;
@@ -2990,8 +2936,8 @@ int CVICALLBACK Hit_Test_Func (int panel, int control, int event,	  //done
 
 void Trigger_Gen(ViSession devise)									  //done
 {
-  int Cnt;
-  unsigned char TempMessage[100];
+  unsigned int Cnt;
+  char TempMessage[100];
   sprintf(TempMessage,"*TRG");   
   status = viWrite(devise, (ViBuf)TempMessage, 5, &Cnt);
   if (status < VI_SUCCESS)
@@ -3074,18 +3020,18 @@ int CVICALLBACK Chn_Mode(int panel, int control, int event,			//done
       */
       if(Chn_Mode==1)
 	{
-	  SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,1);
-	  SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,1);
+	  /* SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,1); */
+	  /* SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,1); */
 	}
       else if(Chn_Mode==2)
 	{
-	  SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,0);
-	  SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,0);
+	  /* SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,0); */
+	  /* SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,0); */
 	}
       else
 	{
-	  SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,1);
-	  SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,0);
+	  /* SetCtrlAttribute(caliHandle,Calitest_ChnID_End ,ATTR_DIMMED,1); */
+	  /* SetCtrlAttribute(caliHandle,Calitest_Calitest_ChnID,ATTR_DIMMED,0); */
 	}
       break;
     }
@@ -3194,7 +3140,8 @@ int CVICALLBACK Set_T5 (int panel, int control, int event,
   DACcode_P = &DACcode;
   char TempMesg[300];
   unsigned char CommandBuffer[2];
-  unsigned char type = 0x20,tempmessage[100];
+  unsigned char type = 0x20;
+  char tempmessage[100];
   unsigned char DACvalue[2];
   unsigned char Test;
   switch (event)
@@ -3243,7 +3190,8 @@ int CVICALLBACK Set_B5 (int panel, int control, int event,
   DACcode_P = &DACcode;
   char TempMesg[300];
   unsigned char CommandBuffer[2];
-  unsigned char type = 0x10,tempmessage[100];
+  unsigned char type = 0x10;
+  char* tempmessage[100];
   unsigned char DACvalue[2];
   unsigned char Test;
   switch (event)
@@ -3292,7 +3240,8 @@ int CVICALLBACK Set_T8 (int panel, int control, int event,
   DACcode_P = &DACcode;
   char TempMesg[300];
   unsigned char CommandBuffer[2];
-  unsigned char type = 0x20,tempmessage[100];
+  unsigned char type = 0x20;
+  char* tempmessage[100];
   unsigned char DACvalue[2];
   unsigned char Test,Test1;
   switch (event)
@@ -3337,7 +3286,8 @@ int CVICALLBACK Set_B8 (int panel, int control, int event,
   double B8;
   int DACcode,i;
   unsigned char type = 0x26;
-  unsigned char DACvalue[2],tempmessage[100];
+  unsigned char DACvalue[2];
+  char tempmessage[100];
   switch (event)
     {
     case EVENT_COMMIT:
@@ -3484,8 +3434,10 @@ int CVICALLBACK Write_NET (int panel, int control, int event,
   switch (event)
     {
     case EVENT_COMMIT:
-      CreateUDPChannel(UDP_ANY_LOCAL_PORT, &writerChannel); 
-      SendNetData(writerChannel,destAddr,data);
+      CreateUDPChannel(UDP_ANY_LOCAL_PORT, &writerChannel);
+      
+      //SendNetData(writerChannel,destAddr,data); // comment out: Yi
+
       //	CreateUDPChannelConfig(4000, UDP_ANY_ADDRESS, 0, UDPCallback, NULL, &readerChannel);
       break;
     }
@@ -3531,16 +3483,16 @@ int CVICALLBACK CMD_Sel_A_B (int panel, int control, int event,
 int CVICALLBACK Remind_Timer (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
 {
-  char Music_Path[300];
+  char Music_Path[300]="./";
   switch (event)
     {
     case EVENT_TIMER_TICK:
-      GetDir(Music_Path);
+      /* GetDir(Music_Path); */
       sprintf(Music_Path,"%s\\Activ-Doar Cu Tine.wav",Music_Path);
-      PlaySound(TEXT(Music_Path), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
+      //PlaySound(TEXT(Music_Path), NULL, SND_FILENAME | SND_ASYNC | SND_LOOP); 
       MessagePopup("提醒","2小时已到,请记录电流等关键数据!");	
-      Beep();
-      PlaySound(NULL, NULL, SND_FILENAME);
+      //Beep();
+      //PlaySound(NULL, NULL, SND_FILENAME);
       break;
     }
   return 0;
@@ -3596,6 +3548,7 @@ int Translation (double Charge, int *DAC, double Relationship[12][2])
       else
 	continue;
     }
+  return 0;
 }
 
 int CVICALLBACK CloseMutiTHR (int panel, int event, void *callbackData,
@@ -3620,9 +3573,9 @@ int CVICALLBACK Config_SC_para (int panel, int control, int event,
 				void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3651,9 +3604,9 @@ int CVICALLBACK Switch_SC_Prob (int panel, int control, int event,
 				void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3689,9 +3642,9 @@ int CVICALLBACK Switch_SC_Prob (int panel, int control, int event,
 int CVICALLBACK Set_DAC (int panel, int control, int event,
 			 void *callbackData, int eventData1, int eventData2)
 {	   	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3710,14 +3663,14 @@ int CVICALLBACK Set_DAC (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xe3;
       TempBuffer[0]=0xff;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
       status=viWrite(instr,TempBuffer,2,&n);	
-      Sleep(100); 
+      sleep(100); 
       status=viWrite(instr,TempBuffer,2,&n);	  
       if(status==VI_SUCCESS)
 	InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
@@ -3734,9 +3687,9 @@ int CVICALLBACK Set_DAC (int panel, int control, int event,
 int CVICALLBACK Set_Thre_DAC (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
 {			  	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData=0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3754,7 +3707,7 @@ int CVICALLBACK Set_Thre_DAC (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);
+      sleep(100);
 			  
 			  
 			  
@@ -3770,7 +3723,7 @@ int CVICALLBACK Set_Thre_DAC (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);
+      sleep(100);
 			  
 			  
       TempBuffer[1]=0x01;
@@ -3786,7 +3739,7 @@ int CVICALLBACK Set_Thre_DAC (int panel, int control, int event,
 	  return(-1);
 	}
 			
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -3801,7 +3754,7 @@ int CVICALLBACK Set_Thre_DAC (int panel, int control, int event,
 	  return(-1);
 	}
 			
-      Sleep(100);
+      sleep(100);
 			 
       GetCtrlVal(mainHandle,Main_Switch_SC_Prob,&ConfigData);
       if(ConfigData == 1)
@@ -3838,13 +3791,13 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 				void *callbackData, int eventData1, int eventData2)
 {	 	unsigned char TempBuffer[2];
   unsigned char TempBuffer1[512];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   double CurTime; 
-  char timemsg[20];
+  char timemsg[20]="0000-00-00-00-00-00";
   char WrDataFile[300];
   int ConfigData = 0;
 	
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3861,29 +3814,17 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 	      return -1;
 	    }
 
-	  GetCurrentDateTime(&CurTime);
-	  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+	  //GetCurrentDateTime(&CurTime);
+	  //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
 	  sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);
-	  fp_write=OpenFile (WrDataFile, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-	  if(fp_write==-1)
+	  fp_write=fopen (WrDataFile, "wb");
+	  if(fp_write==NULL)
 	    {
 	      MessagePopup ("错误", "新建数据保存文件失败！");
 	      return -1;
 	    }
-	  /*TempBuffer[1]=0x33;
-	    TempBuffer[0]=0x00;
-	    sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[1],TempBuffer[0]);
-	    SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
-	    status=viWrite(instr,TempBuffer,2,&n);
-	    if(status==VI_SUCCESS)
-	    InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
-	    else
-	    {
-	    MessagePopup("错误","发送COM配置命令失败！");
-	    return(-1);
-	    }		 */
 				
-	  Sleep(100);
+	  sleep(100);
 	  TempBuffer[1]=0xe3;
 	  TempBuffer[0]=0xff;
 	  sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
@@ -3896,7 +3837,7 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 	      MessagePopup("错误","发送COM配置命令失败！");
 	      return(-1);
 	    }
-	  Sleep(100);
+	  sleep(100);
 	  TempBuffer[1]=0xf1;
 	  TempBuffer[0]=0xf0;
 	  sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
@@ -3910,25 +3851,27 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 	      return(-1);
 	    }
 	  status=viRead(instr,TempBuffer1,512,&n);
-	  Sleep(15);
+	  sleep(15);
 	  //	status=viRead(instr,TempBuffer,512,&n);
-	  //	Sleep(15);
+	  //	sleep(15);
 			
 		
 	  GetData_Status=1; 
 				
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开始数据采集...\n");
 	  SetCtrlVal(mainHandle,Main_Acq_Status,1);
-	  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
-	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启监测...\n");  
-	  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
+	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启监测...\n");
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启数据采集线程...\n");		
 				
 				
 	}
       else
 	{
-	  Sleep(100);
+	  sleep(100);
 	  TempBuffer[1]=0xf0;
 	  TempBuffer[0]=0xf0;
 	  sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
@@ -3943,11 +3886,11 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 	    }
 				
 	  GetData_Status=0;
-	  Sleep(100); 
+	  sleep(100); 
 	  SetCtrlVal(mainHandle,Main_Acq_Status,0);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"结束采集命令发出...\n");
 	
-	  CloseFile(fp_write);
+	  fclose(fp_write);
 	}
 			
 			
@@ -3959,11 +3902,12 @@ int CVICALLBACK Start_Acq_Test (int panel, int control, int event,
 
 int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
-{   	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -3981,7 +3925,7 @@ int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
 			
       GetCtrlVal(mainHandle,Main_Manual_USB_Add,&Add_Data);
@@ -3999,7 +3943,7 @@ int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 					
       TempBuffer[1]=0x00;
       TempBuffer[0]=0xbb; 
@@ -4016,7 +3960,7 @@ int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 					
 				
 			
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4033,7 +3977,7 @@ int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 			
 			
 			
-      Sleep(100);
+      sleep(100);
 			 
       GetCtrlVal(mainHandle,Main_Switch_SC_Prob,&ConfigData);
       if(ConfigData == 1)
@@ -4068,11 +4012,12 @@ int CVICALLBACK Set_Thre_Fsb (int panel, int control, int event,
 
 int CVICALLBACK Set_SS1 (int panel, int control, int event,
 			 void *callbackData, int eventData1, int eventData2)
-{  	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0; 
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4091,7 +4036,7 @@ int CVICALLBACK Set_SS1 (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
       GetCtrlVal(mainHandle,Main_Manual_USB_Add,&Add_Data);    
       GetCtrlVal(mainHandle,Main_SS1_SS10_PA,&ConfigData);      
@@ -4108,7 +4053,7 @@ int CVICALLBACK Set_SS1 (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 					
       TempBuffer[1]=0x00;
       TempBuffer[0]=0xbb; 
@@ -4124,7 +4069,7 @@ int CVICALLBACK Set_SS1 (int panel, int control, int event,
 	}	
 				
 			
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4140,7 +4085,7 @@ int CVICALLBACK Set_SS1 (int panel, int control, int event,
 	}
 			
 			
-      Sleep(100);
+      sleep(100);
 			 
       GetCtrlVal(mainHandle,Main_Switch_SC_Prob,&ConfigData);
       if(ConfigData == 1)
@@ -4175,11 +4120,12 @@ int CVICALLBACK Set_SS1 (int panel, int control, int event,
 
 int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 				       void *callbackData, int eventData1, int eventData2)
-{   	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4197,7 +4143,7 @@ int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
 			
       GetCtrlVal(mainHandle,Main_Manual_USB_Add,&Add_Data);
@@ -4215,7 +4161,7 @@ int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 					
       TempBuffer[1]=0x00;
       TempBuffer[0]=0xbb; 
@@ -4232,7 +4178,7 @@ int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 					
 				
 			
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4249,7 +4195,7 @@ int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 			
 			
 			
-      Sleep(100);
+      sleep(100);
 			 
       GetCtrlVal(mainHandle,Main_Switch_SC_Prob,&ConfigData);
       if(ConfigData == 1)
@@ -4285,11 +4231,12 @@ int CVICALLBACK Thre_Fsb_Cmd_Callback (int panel, int control, int event,
 
 int CVICALLBACK SS1_SS10_PA_Callback (int panel, int control, int event,
 				      void *callbackData, int eventData1, int eventData2)
-{  unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0; 
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4308,7 +4255,7 @@ int CVICALLBACK SS1_SS10_PA_Callback (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
       GetCtrlVal(mainHandle,Main_Manual_USB_Add,&Add_Data);    
       GetCtrlVal(mainHandle,Main_SS1_SS10_PA,&ConfigData);      
@@ -4325,7 +4272,7 @@ int CVICALLBACK SS1_SS10_PA_Callback (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 					
       TempBuffer[1]=0x00;
       TempBuffer[0]=0xbb; 
@@ -4341,7 +4288,7 @@ int CVICALLBACK SS1_SS10_PA_Callback (int panel, int control, int event,
 	}	
 				
 			
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4357,7 +4304,7 @@ int CVICALLBACK SS1_SS10_PA_Callback (int panel, int control, int event,
 	}
 			
 			
-      Sleep(100);
+      sleep(100);
 			 
       GetCtrlVal(mainHandle,Main_Switch_SC_Prob,&ConfigData);
       if(ConfigData == 1)
@@ -4394,9 +4341,9 @@ int CVICALLBACK Select_SCAorBackup (int panel, int control, int event,
 				    void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4426,7 +4373,7 @@ int CVICALLBACK Select_SCAorBackup (int panel, int control, int event,
 	  return(-1);
 	}
 			 
-      Sleep(100);
+      sleep(100);
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
@@ -4447,11 +4394,12 @@ int CVICALLBACK Select_SCAorBackup (int panel, int control, int event,
 
 int CVICALLBACK Set_Analog_out_Backup (int panel, int control, int event,
 				       void *callbackData, int eventData1, int eventData2)
-{	 	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4472,7 +4420,7 @@ int CVICALLBACK Set_Analog_out_Backup (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xb2;
       TempBuffer[0]=0x00; 
@@ -4496,9 +4444,9 @@ int CVICALLBACK Send_Trigger (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4527,10 +4475,10 @@ int CVICALLBACK Select_Cf (int panel, int control, int event,
 			   void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0; 
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4551,7 +4499,7 @@ int CVICALLBACK Select_Cf (int panel, int control, int event,
 	  return(-1);
 	}
 				
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4575,9 +4523,9 @@ int CVICALLBACK Switch_Mode (int panel, int control, int event,
 			     void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4606,14 +4554,14 @@ int CVICALLBACK Switch_Mode (int panel, int control, int event,
 	  return(-1);
 	}
 			
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
       status=viWrite(instr,TempBuffer,2,&n);	
-      Sleep(100); 
+      sleep(100); 
       status=viWrite(instr,TempBuffer,2,&n);	  
       if(status==VI_SUCCESS)
 	InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
@@ -4632,9 +4580,9 @@ int CVICALLBACK Select_ADC_Ext (int panel, int control, int event,
 				void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4661,14 +4609,14 @@ int CVICALLBACK Select_ADC_Ext (int panel, int control, int event,
 	  return(-1);
 	}
 				
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
       status=viWrite(instr,TempBuffer,2,&n);	
-      Sleep(100); 
+      sleep(100); 
       status=viWrite(instr,TempBuffer,2,&n);	  
       if(status==VI_SUCCESS)
 	InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
@@ -4685,10 +4633,11 @@ int CVICALLBACK Select_ADC_Ext (int panel, int control, int event,
 
 int CVICALLBACK Switch_Raz (int panel, int control, int event,
 			    void *callbackData, int eventData1, int eventData2)
-{	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+{
+  unsigned char TempBuffer[2];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4723,9 +4672,9 @@ int CVICALLBACK Select_TDC_On (int panel, int control, int event,
 			       void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4752,14 +4701,14 @@ int CVICALLBACK Select_TDC_On (int panel, int control, int event,
 	  return(-1);
 	}
 				
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
       status=viWrite(instr,TempBuffer,2,&n);	
-      Sleep(100); 
+      sleep(100); 
       status=viWrite(instr,TempBuffer,2,&n);	  
       if(status==VI_SUCCESS)
 	InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
@@ -4779,12 +4728,12 @@ int CVICALLBACK Auto_TA_Test (int panel, int control, int event,
 {
   unsigned char TempBuffer[2];
   unsigned char TempBuffer1[512];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   double CurTime; 
-  char timemsg[20];
+  char timemsg[20]="0000-00-00-00-00-00";
   char WrDataFile[300];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4801,18 +4750,18 @@ int CVICALLBACK Auto_TA_Test (int panel, int control, int event,
 	      return -1;
 	    }
 
-	  GetCurrentDateTime(&CurTime);
-	  FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
+	  //GetCurrentDateTime(&CurTime);
+	  //FormatDateTimeString(CurTime, "%Y-%m-%d-%H-%M-%S", timemsg, 20);
 	  sprintf(WrDataFile,"%s\\%s.dat",WrDataPath,timemsg);
-	  fp_write=OpenFile (WrDataFile, VAL_WRITE_ONLY, VAL_TRUNCATE, VAL_BINARY);
-	  if(fp_write==-1)
+	  fp_write=fopen (WrDataFile, "wb");
+	  if(fp_write==NULL)
 	    {
 	      MessagePopup ("错误", "新建数据保存文件失败！");
 	      return -1;
 	    }
 			
 				
-	  Sleep(100);
+	  sleep(100);
 	  TempBuffer[1]=0xd0;
 	  TempBuffer[0]=0xff;
 	  sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
@@ -4825,14 +4774,16 @@ int CVICALLBACK Auto_TA_Test (int panel, int control, int event,
 	      MessagePopup("错误","发送COM配置命令失败！");
 	      return(-1);
 	    }
-	  Sleep(100);
+	  sleep(100);
 				
 	
 	  GetData_Status=1; 
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开始数据采集...\n");
 	  SetCtrlVal(mainHandle,Main_Acq_Status,1);
-	  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
-	  CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, DataAcq, &mainHandle, &threadID1);
+	  //std::thread
+	  //CmtScheduleThreadPoolFunction (DEFAULT_THREAD_POOL_HANDLE, Acqing, &mainHandle, &threadID4);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启监测...\n");  
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"开启数据采集线程...\n");		
 				
@@ -4842,13 +4793,13 @@ int CVICALLBACK Auto_TA_Test (int panel, int control, int event,
       else
 	{
 		
-	  Sleep(100);
+	  sleep(100);
 	  GetData_Status=0;
-	  Sleep(100); 
+	  sleep(100); 
 	  SetCtrlVal(mainHandle,Main_Acq_Status,0);
 	  SetCtrlVal(mainHandle,Main_TEXTBOX,"结束采集命令发出...\n");
 	
-	  CloseFile(fp_write);
+	  fclose(fp_write);
 	}
 			
 			
@@ -4862,10 +4813,10 @@ int CVICALLBACK Set_Delay_OR64 (int panel, int control, int event,
 {
 	
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
   int Add_Data = 0; 
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4886,7 +4837,7 @@ int CVICALLBACK Set_Delay_OR64 (int panel, int control, int event,
 	  return(-1);
 	}
 				
-      Sleep(100);  
+      sleep(100);  
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
@@ -4910,9 +4861,9 @@ int CVICALLBACK Switch_Val (int panel, int control, int event,
 			    void *callbackData, int eventData1, int eventData2)
 {  	
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4947,9 +4898,9 @@ int CVICALLBACK Only_ExTrig (int panel, int control, int event,
 			     void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -4975,7 +4926,7 @@ int CVICALLBACK Only_ExTrig (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);       
+      sleep(100);       
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00; 
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
@@ -5017,12 +4968,12 @@ int CVICALLBACK Mask_Channel (int panel, int control, int event,
 			      void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
   int Chn[64] = {0},Maks_All_Sig;
   int test;
   int i;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -5056,7 +5007,7 @@ int CVICALLBACK Mask_Channel (int panel, int control, int event,
 	      MessagePopup("错误","发送COM配置命令失败！");
 	      return(-1);
 	    }
-	  Sleep(100);
+	  sleep(100);
 	  TempBuffer[1]=0xb1;
 	  TempBuffer[0]=0x00;
 	  sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);
@@ -5093,7 +5044,7 @@ int CVICALLBACK Mask_Channel (int panel, int control, int event,
 			  MessagePopup("错误","发送COM配置命令失败！");
 			  return(-1);
 			}
-		      Sleep(30);
+		      sleep(30);
 		    }
 		  else
 		    {
@@ -5109,7 +5060,7 @@ int CVICALLBACK Mask_Channel (int panel, int control, int event,
 			  MessagePopup("错误","发送COM配置命令失败！");
 			  return(-1);
 			}
-		      Sleep(30);
+		      sleep(30);
 		    }
 		  Statue_Mask_Ch[i] = Chn[i];
 		  TempBuffer[1]=0xb1;
@@ -5240,9 +5191,9 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 {   
   unsigned char TempBuffer[2];
 
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData=0;
-  int n;
+  unsigned int n;
   int Hv_Value;
   switch (event)
     {
@@ -5262,7 +5213,7 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);
+      sleep(100);
 			 
       ConfigData = (0xF0&Hv_Value)>>4;
       TempBuffer[1]=0x10 + ConfigData;
@@ -5277,7 +5228,7 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);  
+      sleep(100);  
 			
       ConfigData = (0xF00&Hv_Value)>>8;
       TempBuffer[1]=0x20 + ConfigData;
@@ -5292,7 +5243,7 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);   
+      sleep(100);   
 			  
       ConfigData = (0xF000&Hv_Value)>>12;
       TempBuffer[1]=0x30 + ConfigData;
@@ -5307,7 +5258,7 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);    
+      sleep(100);    
 			  
       TempBuffer[1]=0x41;
       TempBuffer[0]= 0xd1; 
@@ -5321,7 +5272,7 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 	  MessagePopup("错误","发送COM配置命令失败！");
 	  return(-1);
 	}
-      Sleep(100);     
+      sleep(100);     
       break;
     }
   return 0;
@@ -5330,9 +5281,9 @@ int CVICALLBACK Set_Hv_Value (int panel, int control, int event,
 int CVICALLBACK On_Off_Hv (int panel, int control, int event,
 			   void *callbackData, int eventData1, int eventData2)
 {	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   switch (event)
     {
     case EVENT_COMMIT:
@@ -5379,9 +5330,9 @@ int CVICALLBACK Display_Hv (int panel, int control, int event,
 int CVICALLBACK Switch_Leakage (int panel, int control, int event,
 				void *callbackData, int eventData1, int eventData2)
 {	unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -5410,14 +5361,14 @@ int CVICALLBACK Switch_Leakage (int panel, int control, int event,
 	  return(-1);
 	}
 			
-      Sleep(100); 
+      sleep(100); 
 			
       TempBuffer[1]=0xb1;
       TempBuffer[0]=0x00;
       sprintf(TempMessage,"Write 0x%02x%02x Command via USB\n",TempBuffer[0],TempBuffer[1]);  
       SetCtrlVal(mainHandle,Main_TEXTBOX,TempMessage);  
       status=viWrite(instr,TempBuffer,2,&n);	
-      Sleep(100); 
+      sleep(100); 
       status=viWrite(instr,TempBuffer,2,&n);	  
       if(status==VI_SUCCESS)
 	InsertTextBoxLine(mainHandle,Main_TEXTBOX,-1,"配置成功！");  
@@ -5435,9 +5386,9 @@ int CVICALLBACK Reset_b (int panel, int control, int event,
 			 void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {
@@ -5465,9 +5416,9 @@ int CVICALLBACK Cosmic_Mode (int panel, int control, int event,
 			     void *callbackData, int eventData1, int eventData2)
 {
   unsigned char TempBuffer[2];
-  unsigned char TempMessage[100];
+  char TempMessage[100];
   int ConfigData = 0;
-  int n;
+  unsigned int n;
   int usbHandle;
   switch (event)
     {

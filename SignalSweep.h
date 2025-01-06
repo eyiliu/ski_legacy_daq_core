@@ -6,7 +6,7 @@
 /*          of this include file.                                         */
 /**************************************************************************/
 
-#include <userint.h>
+/* #include <userint.h> */
 
 #ifdef __cplusplus
     extern "C" {
@@ -22,18 +22,6 @@
 #define  PANEL_Sig_SignalSweepStart       6       /* control type: command, callback function: SignalSweepStart */
 #define  PANEL_Sig_ChnID                  7       /* control type: numeric, callback function: (none) */
 
-
-     /* Control Arrays: */
-
-          /* (no control arrays in the resource file) */
-
-
-     /* Menu Bars, Menus, and Menu Items: */
-
-          /* (no menu bars in the resource file) */
-
-
-     /* Callback Prototypes: */
 
 int  CVICALLBACK Close_SignalSweep(int panel, int event, void *callbackData, int eventData1, int eventData2);
 int  CVICALLBACK SignalSweepStart(int panel, int control, int event, void *callbackData, int eventData1, int eventData2);

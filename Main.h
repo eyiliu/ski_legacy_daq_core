@@ -5,7 +5,11 @@
 /*          of this include file.                                         */
 /**************************************************************************/
 
-#include <userint.h>
+/* #include <userint.h> */
+
+#ifndef CVICALLBACK
+#define CVICALLBACK
+#endif
 
 #ifdef __cplusplus
     extern "C" {

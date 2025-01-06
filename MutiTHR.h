@@ -6,7 +6,7 @@
 /*          of this include file.                                         */
 /**************************************************************************/
 
-#include <userint.h>
+/* #include <userint.h> */
 
 #ifdef __cplusplus
     extern "C" {
