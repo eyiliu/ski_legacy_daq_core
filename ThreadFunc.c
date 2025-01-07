@@ -16,7 +16,7 @@ FILE* fp_TAConfig;
 int BeepFlag=0;
 FILE *fp_temperature;
 FILE *fp_current;
-unsigned char CommandWord[2]; 
+/* unsigned char CommandWord[2];  */
 
 unsigned char High_Cmd[6] = {0x51,0x52,0x52,0x53,0x53,0x54};
 unsigned char Low_Cmd[6]  = {0x98,0x21,0xa9,0x31,0xb7,0x40};	

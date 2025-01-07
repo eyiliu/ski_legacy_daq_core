@@ -33,7 +33,7 @@
 #include "TAConfig.h"
 #include "PX.h"
 
-
+unsigned char Response[256];
 
 ViSession defaultRM, instr;
 ViSession rm, SignalSource;
@@ -74,7 +74,7 @@ double CurTime;
 char timemsg[20]="0000-00-00-00-00-00";
 char text_log[300];
 int TrigDelay=0x18;
-FILE* fp_TAConfig;
+//FILE* fp_TAConfig;
 FILE* fp_cmd_log;
 FILE* fp_text_log;																								  
 /////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ int CRC_Array[16]={1};
 int ALLFEE;
 int HitAndArray[64] ={0};
 unsigned char CRC_Result[2];
-unsigned char CommandWord[2];
+//unsigned char CommandWord[2];
 char IPAddress[100] = {"USB0::0x0699::0x0345::C022722::INSTR"};
 unsigned int     writerChannel = 0; 
 int duty_i = 0;

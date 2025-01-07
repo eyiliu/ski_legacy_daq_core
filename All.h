@@ -11,9 +11,6 @@
 #ifndef __All_H__
 #define __All_H__
 
-#ifdef __cplusplus
-    extern "C" {
-#endif
 
 //==============================================================================
 
@@ -163,12 +160,7 @@ int CVICALLBACK Cali_For_DAQ(void *functionData);
 int CVICALLBACK Acqing(void *functionData) ;
 
 
-
 int Translation (double Charge, int *DAC, double Relationship[12][2]);
 
-
-#ifdef __cplusplus
-    }
-#endif
 
 #endif  /* ndef __All_H__ */
